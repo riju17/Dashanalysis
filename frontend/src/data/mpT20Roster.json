@@ -1,0 +1,716 @@
+{
+  "teams": [
+    {
+      "team_name": "Indore Pink Panthers",
+      "short_name": "IPP",
+      "players": [
+        [
+          "Karan Tahliyani",
+          "Batter"
+        ],
+        [
+          "Saransh Bhargava",
+          "Batter"
+        ],
+        [
+          "Atahrva Joshi",
+          "Wicketkeeper"
+        ],
+        [
+          "Siddharth Patidar",
+          "Wicketkeeper"
+        ],
+        [
+          "Mehfooz Patel",
+          "Wicketkeeper"
+        ],
+        [
+          "Venkatesh Iyer",
+          "All-rounder"
+        ],
+        [
+          "Anvesh Chawla",
+          "All-rounder"
+        ],
+        [
+          "Ayaam Verma",
+          "All-rounder"
+        ],
+        [
+          "Saransh Surana",
+          "All-rounder"
+        ],
+        [
+          "Shubham Rathore",
+          "All-rounder"
+        ],
+        [
+          "Lucky Mishra",
+          "All-rounder"
+        ],
+        [
+          "Sidhant Agrawal",
+          "All-rounder"
+        ],
+        [
+          "Shivam Shukla",
+          "Bowler"
+        ],
+        [
+          "Roshan Kewat",
+          "Bowler"
+        ],
+        [
+          "Akash Rajawat",
+          "Bowler"
+        ],
+        [
+          "Vishnu Bhardwaj",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Gwalior Cheetahs",
+      "short_name": "GCH",
+      "players": [
+        [
+          "Kuldeep Gehi",
+          "Wicketkeeper"
+        ],
+        [
+          "Vikas Sharma",
+          "Wicketkeeper"
+        ],
+        [
+          "Varun Tiwari",
+          "Wicketkeeper"
+        ],
+        [
+          "Parth Chaudhary",
+          "Batter"
+        ],
+        [
+          "Kartik Parihar",
+          "Batter"
+        ],
+        [
+          "Vandit Joshi",
+          "Batter"
+        ],
+        [
+          "Saumy Pandey",
+          "Bowler"
+        ],
+        [
+          "Akash Singh",
+          "Bowler"
+        ],
+        [
+          "Ishan Afridi",
+          "Bowler"
+        ],
+        [
+          "Anubhav Agrawal",
+          "Bowler"
+        ],
+        [
+          "Arpit Patel",
+          "All-rounder"
+        ],
+        [
+          "Anil Maurya",
+          "All-rounder"
+        ],
+        [
+          "Tushar Verma",
+          "All-rounder"
+        ],
+        [
+          "Varun Shinde",
+          "All-rounder"
+        ],
+        [
+          "Rajat Patidar",
+          "Batter"
+        ],
+        [
+          "Mangesh Yadav",
+          "All-rounder"
+        ]
+      ]
+    },
+    {
+      "team_name": "Bundelkhand Bulls",
+      "short_name": "BKB",
+      "players": [
+        [
+          "Parth Goswami",
+          "Batter"
+        ],
+        [
+          "Abhishek Pathak",
+          "Batter"
+        ],
+        [
+          "Rudransh Singh",
+          "Batter"
+        ],
+        [
+          "Harsh Gawali",
+          "Wicketkeeper"
+        ],
+        [
+          "Kushagra Wadhwa",
+          "Wicketkeeper"
+        ],
+        [
+          "Shvang Kumar",
+          "All-rounder"
+        ],
+        [
+          "Vikrant Bhadoriya",
+          "All-rounder"
+        ],
+        [
+          "Anant Dubey",
+          "All-rounder"
+        ],
+        [
+          "Aman Jain",
+          "All-rounder"
+        ],
+        [
+          "Gautam Joshi",
+          "All-rounder"
+        ],
+        [
+          "Bhumesh Muzalda",
+          "All-rounder"
+        ],
+        [
+          "Kuldeep Sen",
+          "Bowler"
+        ],
+        [
+          "Omkarnath Singh",
+          "Bowler"
+        ],
+        [
+          "Harshit Parsai",
+          "Bowler"
+        ],
+        [
+          "Yash Patidar",
+          "Bowler"
+        ],
+        [
+          "Milan Shivhare",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Jabalpur Royal Lions",
+      "short_name": "JRL",
+      "players": [
+        [
+          "Arpit Gaud",
+          "Batter"
+        ],
+        [
+          "Akarsh Singh Parihar",
+          "Batter"
+        ],
+        [
+          "Prince Wadhwani",
+          "Batter"
+        ],
+        [
+          "Ajay Rohera",
+          "Wicketkeeper"
+        ],
+        [
+          "Abhishek Bhandari",
+          "Wicketkeeper"
+        ],
+        [
+          "Puneet Datey",
+          "All-rounder"
+        ],
+        [
+          "Ritik Tada",
+          "All-rounder"
+        ],
+        [
+          "Nayan Raj Mewada",
+          "All-rounder"
+        ],
+        [
+          "Akshat Dwivedi",
+          "All-rounder"
+        ],
+        [
+          "Rahul Batham",
+          "All-rounder"
+        ],
+        [
+          "Sanjog Nijjar",
+          "All-rounder"
+        ],
+        [
+          "Vedant Awasthi",
+          "All-rounder"
+        ],
+        [
+          "Pankaj Patel",
+          "Bowler"
+        ],
+        [
+          "Akshay Sharma",
+          "Bowler"
+        ],
+        [
+          "Aayam Sardana",
+          "Bowler"
+        ],
+        [
+          "Mihir Hirwani",
+          "Bowler"
+        ],
+        [
+          "Ritwik Diwan",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Ujjain Falcons",
+      "short_name": "UJF",
+      "players": [
+        [
+          "Ojaswa Yadav",
+          "Batter"
+        ],
+        [
+          "Shubham Kushwah",
+          "Batter"
+        ],
+        [
+          "Soham Patwardhan",
+          "Batter"
+        ],
+        [
+          "Darshan Rathore",
+          "Batter"
+        ],
+        [
+          "Chanchal Rathore",
+          "Wicketkeeper"
+        ],
+        [
+          "Yash Dubey",
+          "Wicketkeeper"
+        ],
+        [
+          "Madhav Tiwari",
+          "All-rounder"
+        ],
+        [
+          "Aryan Pandey",
+          "All-rounder"
+        ],
+        [
+          "Ankur Singh Chauhan",
+          "All-rounder"
+        ],
+        [
+          "Rishi Miglani",
+          "All-rounder"
+        ],
+        [
+          "Harshwardhan Hardia",
+          "All-rounder"
+        ],
+        [
+          "Gajendra Goswami",
+          "Bowler"
+        ],
+        [
+          "Adheer Pratap Singh",
+          "Bowler"
+        ],
+        [
+          "Aayush Mankar",
+          "Bowler"
+        ],
+        [
+          "Masoom Raza Khan",
+          "Bowler"
+        ],
+        [
+          "Naveen Nagle",
+          "Bowler"
+        ],
+        [
+          "Vishesh Mudgal",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Royal Nimar Eagles",
+      "short_name": "RNE",
+      "players": [
+        [
+          "Anand Singh Bais",
+          "Batter"
+        ],
+        [
+          "Abhishek Mavi",
+          "Batter"
+        ],
+        [
+          "Ayaan Sreeraj",
+          "Batter"
+        ],
+        [
+          "Himanshu Mantri",
+          "Wicketkeeper"
+        ],
+        [
+          "Pranit Patidar",
+          "Wicketkeeper"
+        ],
+        [
+          "Saransh Jain",
+          "All-rounder"
+        ],
+        [
+          "Kanishk Dubey",
+          "All-rounder"
+        ],
+        [
+          "Shantanu Raghuvanshi",
+          "All-rounder"
+        ],
+        [
+          "Prarabdh Mishra",
+          "All-rounder"
+        ],
+        [
+          "Pushkar Vishwakarma",
+          "All-rounder"
+        ],
+        [
+          "Dharmesh Patel",
+          "All-rounder"
+        ],
+        [
+          "Shivansh Chaturvedi",
+          "All-rounder"
+        ],
+        [
+          "Shashank Patidar",
+          "All-rounder"
+        ],
+        [
+          "Kumar Kartikeya",
+          "Bowler"
+        ],
+        [
+          "Kartik Rajoriya",
+          "Bowler"
+        ],
+        [
+          "Parush Mandal",
+          "Bowler"
+        ],
+        [
+          "Devendra Singh Katheit",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Chambal Ghariyal",
+      "short_name": "CHG",
+      "players": [
+        [
+          "Ankush Singh",
+          "Batter"
+        ],
+        [
+          "Rohit Kumar Gupta",
+          "Batter"
+        ],
+        [
+          "Shubham Sharma",
+          "All-rounder"
+        ],
+        [
+          "Aman Bhadoria",
+          "All-rounder"
+        ],
+        [
+          "Gautam Raghuvanshi",
+          "All-rounder"
+        ],
+        [
+          "Harsh Dixit",
+          "All-rounder"
+        ],
+        [
+          "Tripuresh Singh",
+          "All-rounder"
+        ],
+        [
+          "Karan Tiwari",
+          "Wicketkeeper"
+        ],
+        [
+          "Diyanshu Yadav",
+          "All-rounder"
+        ],
+        [
+          "Apurva Dwivedi",
+          "Wicketkeeper"
+        ],
+        [
+          "Avesh Khan",
+          "Bowler"
+        ],
+        [
+          "Akshay Singh",
+          "Bowler"
+        ],
+        [
+          "Mayur Singh Patel",
+          "Bowler"
+        ],
+        [
+          "Piyush Patel",
+          "Bowler"
+        ],
+        [
+          "Yash Kumar Lodhi",
+          "Bowler"
+        ],
+        [
+          "Madhur Seth",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Rewa Jaguars",
+      "short_name": "RJG",
+      "players": [
+        [
+          "Akshat Raghuwanshi",
+          "Batter"
+        ],
+        [
+          "Atharva Mahajan",
+          "Batter"
+        ],
+        [
+          "Sagar Pratap Singh",
+          "Batter"
+        ],
+        [
+          "Arham Aqueel",
+          "Batter"
+        ],
+        [
+          "Anant Verma",
+          "Wicketkeeper"
+        ],
+        [
+          "Jaydev Singh",
+          "Wicketkeeper"
+        ],
+        [
+          "Sagar Solanki",
+          "All-rounder"
+        ],
+        [
+          "Prithviraj Tomar",
+          "All-rounder"
+        ],
+        [
+          "Ankit Singh Kushwah",
+          "All-rounder"
+        ],
+        [
+          "Naveen Singh Chauhan",
+          "All-rounder"
+        ],
+        [
+          "Ramveer Singh Gurjar",
+          "Bowler"
+        ],
+        [
+          "Ashwin Das",
+          "Bowler"
+        ],
+        [
+          "Rohit Rajawat",
+          "Bowler"
+        ],
+        [
+          "Prabhanshu Shukla",
+          "Bowler"
+        ],
+        [
+          "Ritesh Shakya",
+          "Bowler"
+        ],
+        [
+          "Radhakrishna Dwivedi",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Bhopal Leopards",
+      "short_name": "BPL",
+      "players": [
+        [
+          "Aniket Verma",
+          "Batter"
+        ],
+        [
+          "Ansh Bagadia",
+          "Batter"
+        ],
+        [
+          "Suraj Yadav",
+          "Batter"
+        ],
+        [
+          "Anchit Thakur",
+          "Wicketkeeper"
+        ],
+        [
+          "Rahul Chandrol",
+          "Wicketkeeper"
+        ],
+        [
+          "Kunal Rai",
+          "Wicketkeeper"
+        ],
+        [
+          "Arshad Khan",
+          "All-rounder"
+        ],
+        [
+          "Kamal Tripathi",
+          "All-rounder"
+        ],
+        [
+          "Pranjal Puri",
+          "All-rounder"
+        ],
+        [
+          "Himanshu Shinde",
+          "All-rounder"
+        ],
+        [
+          "Tanishq Yadav",
+          "All-rounder"
+        ],
+        [
+          "Ajay Mishra",
+          "All-rounder"
+        ],
+        [
+          "Pawan Nirwani",
+          "Bowler"
+        ],
+        [
+          "Amol Kasture",
+          "Bowler"
+        ],
+        [
+          "Yuvraj Nema",
+          "Bowler"
+        ],
+        [
+          "Anurag Malwiya",
+          "Bowler"
+        ],
+        [
+          "Manish Kumar",
+          "Bowler"
+        ]
+      ]
+    },
+    {
+      "team_name": "Malwa Stallions",
+      "short_name": "MSL",
+      "players": [
+        [
+          "Saksham Purohit",
+          "Wicketkeeper"
+        ],
+        [
+          "Rakesh Thakur",
+          "Wicketkeeper"
+        ],
+        [
+          "Pankaj Sharma",
+          "Batter"
+        ],
+        [
+          "Ansh Yadav",
+          "Batter"
+        ],
+        [
+          "Rishabh Chauhan",
+          "All-rounder"
+        ],
+        [
+          "Akhil Nigote",
+          "Batter"
+        ],
+        [
+          "Ashutosh Sharma",
+          "Batter"
+        ],
+        [
+          "Parth Sahani",
+          "All-rounder"
+        ],
+        [
+          "Prashant Kasde",
+          "Bowler"
+        ],
+        [
+          "Aditya Mishra",
+          "Bowler"
+        ],
+        [
+          "Harshwardhan Singh",
+          "Bowler"
+        ],
+        [
+          "Aryan Deshmukh",
+          "All-rounder"
+        ],
+        [
+          "Ishan Chaudhary",
+          "Bowler"
+        ],
+        [
+          "Vineet Rawat",
+          "Bowler"
+        ],
+        [
+          "Vivek Sharma",
+          "Bowler"
+        ]
+      ]
+    }
+  ]
+}
