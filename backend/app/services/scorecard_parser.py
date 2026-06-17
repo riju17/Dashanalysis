@@ -4,6 +4,8 @@ import re
 from typing import Any
 from typing import Optional
 
+from app.utils.cricket_calculations import parse_overs_to_balls
+
 
 TEAM_SCORE_RE = re.compile(
     r"^(?P<team>.+?)\s+(?P<score>\d+)\s*/\s*(?P<wickets>\d+)\s*\((?P<overs>\d+(?:\.\d+)?)\s*ov(?:ers)?\b",
@@ -209,7 +211,7 @@ def _parse_innings_block(
         "score": header["score"],
         "wickets": header["wickets"],
         "overs": header["overs"],
-        "run_rate": round(_safe_float(header["score"]) / header["overs"], 2) if header["overs"] else 0.0,
+        "run_rate": round(_safe_float(header["score"]) / (parse_overs_to_balls(header["overs"]) / 6), 2) if header["overs"] else 0.0,
         "extras": 0,
         "extras_breakdown": {},
         "batting": [],

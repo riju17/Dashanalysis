@@ -11,7 +11,9 @@ from app.utils.cricket_calculations import (
     all_rounder_index,
     batting_impact,
     bowling_impact,
+    balls_to_overs,
     clamp,
+    parse_overs_to_balls,
     percentage,
     safe_divide,
     team_strength_score,
@@ -46,6 +48,10 @@ class AnalyticsService:
     def _venue_lookup(self) -> dict[str, dict[str, Any]]:
         return {venue["id"]: venue for venue in self._venues()}
 
+    def _overs_total(self, overs_values: pd.Series) -> tuple[float, int]:
+        balls = sum(parse_overs_to_balls(float(overs or 0)) for overs in overs_values.fillna(0).tolist())
+        return balls_to_overs(int(balls)), int(balls)
+
     def _matches_df(self) -> pd.DataFrame:
         matches = self._matches()
         return pd.DataFrame(matches) if matches else pd.DataFrame(columns=["id"])
@@ -60,6 +66,13 @@ class AnalyticsService:
         players = self._players()
         stats_df = self._stats_df()
         matches_df = self._matches_df()
+        total_runs = int(stats_df["runs"].sum()) if not stats_df.empty else 0
+        total_balls = int(stats_df["balls"].sum()) if not stats_df.empty else 0
+        _overs_display, total_bowler_balls = self._overs_total(stats_df["overs"]) if not stats_df.empty and "overs" in stats_df else (0.0, 0)
+        total_runs_conceded = int(stats_df["runs_conceded"].sum()) if not stats_df.empty else 0
+        total_fours = int(stats_df["fours"].sum()) if not stats_df.empty else 0
+        total_sixes = int(stats_df["sixes"].sum()) if not stats_df.empty else 0
+        total_wickets = int(stats_df["wickets"].sum()) if not stats_df.empty else 0
 
         average_first_innings_score = round(matches_df["first_innings_score"].mean(), 2) if not matches_df.empty else 0.0
         chase_wins = [m for m in matches if m.get("winner_id") and str(m.get("winner_id")) != str(m.get("bat_first_team_id"))]
@@ -118,6 +131,12 @@ class AnalyticsService:
             "total_teams": len(teams),
             "total_players": len(players),
             "average_first_innings_score": average_first_innings_score,
+            "total_runs": total_runs,
+            "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
+            "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
+            "fours": total_fours,
+            "sixes": total_sixes,
+            "wickets_taken": total_wickets,
             "chase_win_percentage": chase_win_percentage,
             "bat_first_win_percentage": bat_first_win_percentage,
             "toss_conversion_percentage": toss_conversion_percentage,
@@ -137,21 +156,21 @@ class AnalyticsService:
             losses = [m for m in team_matches if m.get("winner_id") and str(m.get("winner_id")) != team["id"]]
             runs_for = 0.0
             runs_against = 0.0
-            overs_for = 0.0
-            overs_against = 0.0
+            overs_for_balls = 0
+            overs_against_balls = 0
             for match in team_matches:
                 if str(match.get("bat_first_team_id")) == team["id"]:
                     runs_for += float(match.get("first_innings_score") or 0)
-                    overs_for += float(match.get("first_innings_overs") or 0)
+                    overs_for_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
                     runs_against += float(match.get("second_innings_score") or 0)
-                    overs_against += float(match.get("second_innings_overs") or 0)
+                    overs_against_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
                 else:
                     runs_for += float(match.get("second_innings_score") or 0)
-                    overs_for += float(match.get("second_innings_overs") or 0)
+                    overs_for_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
                     runs_against += float(match.get("first_innings_score") or 0)
-                    overs_against += float(match.get("first_innings_overs") or 0)
-            run_rate_for = safe_divide(runs_for, overs_for, 0.0)
-            run_rate_against = safe_divide(runs_against, overs_against, 0.0)
+                    overs_against_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
+            run_rate_for = safe_divide(runs_for, overs_for_balls / 6, 0.0)
+            run_rate_against = safe_divide(runs_against, overs_against_balls / 6, 0.0)
             nrr = round(run_rate_for - run_rate_against, 3)
             standings_rows.append(
                 {
@@ -190,11 +209,19 @@ class AnalyticsService:
                 "toss_conversion_percentage": 0.0,
                 "average_score_batting_first": 0.0,
                 "average_score_chasing": 0.0,
+                "total_runs": 0,
+                "avg_strike_rate": 0.0,
+                "avg_economy": 0.0,
+                "fours": 0,
+                "sixes": 0,
+                "wickets_taken": 0,
                 "form_index": 0.0,
                 "team_strength_score": 0.0,
             }
             return {"team": team, "metrics": metrics, "insights": ["No matches available for this team yet."], "recent_matches": [], "head_to_head_summary": []}
 
+        team_stats = self.store.filter("player_match_stats", team_id=team_id)
+        team_stats_df = pd.DataFrame(team_stats) if team_stats else pd.DataFrame(columns=["id"])
         wins = [m for m in matches if str(m.get("winner_id")) == team_id]
         losses = [m for m in matches if str(m.get("loser_id")) == team_id]
         bat_first_matches = [m for m in matches if str(m.get("bat_first_team_id")) == team_id]
@@ -205,7 +232,18 @@ class AnalyticsService:
         wins_after_toss = [m for m in matches if str(m.get("toss_winner_id")) == team_id and str(m.get("winner_id")) == team_id]
         scores_batting_first = [m.get("first_innings_score", 0) for m in bat_first_matches if m.get("first_innings_score") is not None]
         scores_chasing = [m.get("second_innings_score", 0) for m in chase_matches if m.get("second_innings_score") is not None]
-        recent_matches = sorted(matches, key=lambda item: item.get("match_date", ""), reverse=True)[:5]
+        recent_matches = sorted(
+            matches,
+            key=lambda item: (int(item.get("match_number") or 0), str(item.get("match_date") or "")),
+            reverse=True,
+        )
+        total_runs = int(team_stats_df["runs"].sum()) if not team_stats_df.empty else 0
+        total_balls = int(team_stats_df["balls"].sum()) if not team_stats_df.empty else 0
+        _overs_display, total_bowler_balls = self._overs_total(team_stats_df["overs"]) if not team_stats_df.empty and "overs" in team_stats_df else (0.0, 0)
+        total_runs_conceded = int(team_stats_df["runs_conceded"].sum()) if not team_stats_df.empty else 0
+        total_fours = int(team_stats_df["fours"].sum()) if not team_stats_df.empty else 0
+        total_sixes = int(team_stats_df["sixes"].sum()) if not team_stats_df.empty else 0
+        total_wickets = int(team_stats_df["wickets"].sum()) if not team_stats_df.empty else 0
         recent_form_index = self._recent_form_index(team_id)
         batting_strength = clamp((percentage(len(bat_first_wins), len(bat_first_matches)) + percentage(len(chase_wins), len(chase_matches))) / 2)
         bowling_strength = clamp((percentage(len(wins_after_toss), len(toss_wins)) + percentage(len(wins), len(matches))) / 2)
@@ -226,6 +264,12 @@ class AnalyticsService:
             "toss_conversion_percentage": round(percentage(len(wins_after_toss), len(toss_wins)), 2),
             "average_score_batting_first": round(sum(scores_batting_first) / len(scores_batting_first), 2) if scores_batting_first else 0.0,
             "average_score_chasing": round(sum(scores_chasing) / len(scores_chasing), 2) if scores_chasing else 0.0,
+            "total_runs": total_runs,
+            "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
+            "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
+            "fours": total_fours,
+            "sixes": total_sixes,
+            "wickets_taken": total_wickets,
             "form_index": round(recent_form_index, 2),
             "team_strength_score": round(
                 team_strength_score(
@@ -260,6 +304,7 @@ class AnalyticsService:
 
         stats = self.store.filter("player_match_stats", player_id=player_id)
         stats_df = pd.DataFrame(stats) if stats else pd.DataFrame()
+        overs_balls = 0
         if stats_df.empty:
             batting = {
                 "total_runs": 0,
@@ -285,7 +330,7 @@ class AnalyticsService:
             total_matches = max(len(stats_df), 1)
             fours = int(stats_df["fours"].sum())
             sixes = int(stats_df["sixes"].sum())
-            overs = round(float(stats_df["overs"].sum()), 2)
+            overs, overs_balls = self._overs_total(stats_df["overs"]) if "overs" in stats_df else (0.0, 0)
             wickets = int(stats_df["wickets"].sum())
             dot_balls = int(stats_df["dot_balls"].sum())
             runs_conceded = float(stats_df["runs_conceded"].sum())
@@ -304,14 +349,21 @@ class AnalyticsService:
                 "overs": overs,
                 "wickets": wickets,
                 "economy": round(runs_conceded / overs, 2) if overs else 0.0,
-                "dot_ball_percentage": round(percentage(dot_balls, int(overs * 6)), 2) if overs else 0.0,
+                "dot_ball_percentage": round(percentage(dot_balls, overs_balls), 2) if overs_balls else 0.0,
                 "bowling_strike_impact": round((wickets * 25) + (dot_balls * 1.25), 2),
                 "pressure_bowling_score": round(bowling_impact(wickets, dot_balls, round(runs_conceded / overs, 2) if overs else 0.0), 2),
             }
 
         impact = {
             "batting_impact": round(batting_impact(batting.get("total_runs", 0), batting.get("batting_strike_rate", 0.0), batting.get("fours", 0), batting.get("sixes", 0)), 2),
-            "bowling_impact": round(bowling_impact(bowling.get("wickets", 0), int((bowling.get("dot_ball_percentage", 0) / 100) * max(int(bowling.get("overs", 0) * 6), 1)), bowling.get("economy", 0.0)), 2),
+            "bowling_impact": round(
+                bowling_impact(
+                    bowling.get("wickets", 0),
+                    int((bowling.get("dot_ball_percentage", 0) / 100) * overs_balls) if overs_balls else 0,
+                    bowling.get("economy", 0.0),
+                ),
+                2,
+            ),
         }
         impact["all_rounder_index"] = round(all_rounder_index(impact["batting_impact"], impact["bowling_impact"]), 2)
         insights = self._player_insights_from_metrics(player, batting, bowling, impact)

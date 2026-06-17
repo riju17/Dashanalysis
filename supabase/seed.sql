@@ -6,7 +6,7 @@ values
   ('834605bb-cc4a-5b89-88c7-218cbb32d6ab', 'Jabalpur Royal Lions', 'JRL', '#1D4ED8', '#6366F1', '#38BDF8', 'https://dummyimage.com/256x256/0f172a/1D4ED8&text=JRL', '2026-01-01T10:00:00'),
   ('2e16f308-a4d9-590a-9823-1489edc087df', 'Ujjain Falcons', 'UJF', '#8B5CF6', '#C084FC', '#F472B6', 'https://dummyimage.com/256x256/0f172a/8B5CF6&text=UJF', '2026-01-01T10:00:00'),
   ('92ad1deb-7d7a-59bd-b2fe-f35e2fa56ada', 'Nimar Eagles', 'RNE', '#F43F5E', '#FB7185', '#F97316', 'https://dummyimage.com/256x256/0f172a/F43F5E&text=RNE', '2026-01-01T10:00:00'),
-  ('3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Chambal Ghariyal', 'CHG', '#10B981', '#34D399', '#F59E0B', 'https://dummyimage.com/256x256/0f172a/10B981&text=CHG', '2026-01-01T10:00:00'),
+  ('3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Chambal Ghariyals', 'CHG', '#10B981', '#34D399', '#F59E0B', 'https://dummyimage.com/256x256/0f172a/10B981&text=CHG', '2026-01-01T10:00:00'),
   ('d1962402-4148-5a80-b691-75d24e750af1', 'Rewa Jaguars', 'RJG', '#0284C7', '#38BDF8', '#60A5FA', 'https://dummyimage.com/256x256/0f172a/0284C7&text=RJG', '2026-01-01T10:00:00'),
   ('89c8bea7-a025-55f9-8858-3b1220253648', 'Bhopal Leopards', 'BPL', '#7C2D12', '#EA580C', '#F59E0B', 'https://dummyimage.com/256x256/0f172a/7C2D12&text=BPL', '2026-01-01T10:00:00'),
   ('42c007fa-6d22-56b0-981b-fae8db3c0483', 'Malwa Stallions', 'MSL', '#0F172A', '#2563EB', '#22D3EE', 'https://dummyimage.com/256x256/0f172a/0F172A&text=MSL', '2026-01-01T10:00:00')
@@ -97,6 +97,133 @@ values (
   '2026-06-13T14:30:00'
 );
 
+-- Match 25: Ujjain Falcons vs Rewa Jaguars
+insert into venues (id, venue_name, city, country, created_at)
+values
+  ('0b2128b7-a408-5c19-a6bf-cdd7c3ffa816', 'Holkar Stadium', 'Indore', 'India', '2026-06-13T15:00:00')
+on conflict (venue_name) do update set
+  city = excluded.city,
+  country = excluded.country,
+  created_at = excluded.created_at
+;
+
+-- Name corrections from the scorecard
+update players set player_name = 'Ankit Kushwah' where id = 'd1b49b26-555f-569a-87eb-f55a7443c614';
+update players set player_name = 'Ramveer Gurjar' where id = 'a8bcd523-2f54-5dbe-bc14-55c5d83c4bf7';
+update players set player_name = 'Ankur Chauhan' where id = '17ec0eb7-e6f6-5367-9484-40316d13e11d';
+
+delete from reports where match_id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025';
+delete from player_match_stats where match_id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025';
+delete from matches where id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025';
+
+insert into matches (
+  id,
+  match_date,
+  season,
+  tournament,
+  match_number,
+  team_a_id,
+  team_b_id,
+  venue_id,
+  toss_winner_id,
+  toss_decision,
+  bat_first_team_id,
+  bowl_first_team_id,
+  first_innings_score,
+  first_innings_wickets,
+  first_innings_overs,
+  second_innings_score,
+  second_innings_wickets,
+  second_innings_overs,
+  winner_id,
+  loser_id,
+  result_type,
+  margin_runs,
+  margin_wickets,
+  player_of_match_id,
+  notes,
+  created_at
+)
+values (
+  '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025',
+  '2026-06-13',
+  '2026',
+  'MPt20',
+  25,
+  '2e16f308-a4d9-590a-9823-1489edc087df',
+  'd1962402-4148-5a80-b691-75d24e750af1',
+  '0b2128b7-a408-5c19-a6bf-cdd7c3ffa816',
+  '2e16f308-a4d9-590a-9823-1489edc087df',
+  'bat',
+  '2e16f308-a4d9-590a-9823-1489edc087df',
+  'd1962402-4148-5a80-b691-75d24e750af1',
+  231,
+  4,
+  20,
+  234,
+  5,
+  19,
+  'd1962402-4148-5a80-b691-75d24e750af1',
+  '2e16f308-a4d9-590a-9823-1489edc087df',
+  'wickets',
+  null,
+  5,
+  '26ed4478-2b30-5de3-ba83-96749866d006',
+  'Match 25 at Holkar Stadium, Indore. Rewa Jaguars won by 5 wickets with 6 balls remaining after chasing 234/5 in 19 overs against Ujjain Falcons 231/4 in 20 overs. Toss: Ujjain Falcons won and chose to bat. Umpires: Manish Jain and Rameez Khan. Third umpire: Nikhil Menon. Reserve umpire: Vishal Sharma. Scorer: Jayant Wankhede. Referee: Sanjeev Rao. Ball type: Leather. Ball color: White.',
+  '2026-06-13T15:00:00'
+);
+
+insert into player_match_stats (
+  id,
+  match_id,
+  player_id,
+  team_id,
+  batting_position,
+  runs,
+  balls,
+  fours,
+  sixes,
+  strike_rate,
+  overs,
+  maidens,
+  runs_conceded,
+  wickets,
+  dot_balls,
+  economy,
+  catches,
+  runouts,
+  stumpings,
+  created_at
+)
+values
+  -- Ujjain Falcons batting and bowling
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002501', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'aab476d8-1b1e-5e64-b131-f8a20a926547', '2e16f308-a4d9-590a-9823-1489edc087df',  1, 11,  6, 2, 0, 183.33, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002502', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '76c8afae-d578-5f7d-a434-bff3e9426dc8', '2e16f308-a4d9-590a-9823-1489edc087df',  2, 71, 38, 5, 6, 186.84, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002503', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'c9704649-b025-5ae3-a7e1-58959be7b68c', '2e16f308-a4d9-590a-9823-1489edc087df',  3, 49, 40, 3, 1, 122.50, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002504', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'd58207e1-c9a0-5d95-a068-5c1ef03e6086', '2e16f308-a4d9-590a-9823-1489edc087df',  4, 18, 13, 2, 1, 138.46, 4, 0, 58, 1,  7, 14.50, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002505', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '26fe523a-8080-5d6b-91df-2a56855d6b82', '2e16f308-a4d9-590a-9823-1489edc087df',  5, 44, 14, 1, 6, 314.29, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002506', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'f37d1d1d-bd57-559c-9e29-7bebccc95480', '2e16f308-a4d9-590a-9823-1489edc087df',  6, 28,  9, 2, 3, 311.11, 4, 0, 39, 1,  7,  9.75, 1, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002507', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '5f9d6003-67e6-5524-b959-57d064eb9ac2', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 3, 0, 32, 0,  6, 10.67, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002508', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'd1b49b26-555f-569a-87eb-f55a7443c614', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 4, 0, 43, 2,  5, 10.75, 1, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002509', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '27d217d2-3af4-5405-a088-c7ef5ad6ac41', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 1, 0, 13, 0,  1, 13.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002510', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '2b2f93bb-fe9d-5b14-abb3-6a5fe6c1a9c8', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 4, 0, 40, 0,  6, 10.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002511', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'e81c782b-8204-50d9-9e14-c0968343fe65', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 4, 0, 58, 1,  7, 14.50, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002512', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '23350497-ca69-525f-b620-d61b88cb8670', '2e16f308-a4d9-590a-9823-1489edc087df', null, 0,  0, 0, 0,   0.00, 2, 0, 29, 1,  1, 14.50, 0, 0, 0, '2026-06-13T15:00:00'),
+
+  -- Rewa Jaguars batting and bowling
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002521', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '8ec8ffda-bfdc-54de-89d4-85e3d75f1ab3', 'd1962402-4148-5a80-b691-75d24e750af1',  1, 24, 11, 1, 3, 218.18, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002522', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '14285295-0308-5eed-abb1-b4c02962a013', 'd1962402-4148-5a80-b691-75d24e750af1',  2, 21, 11, 1, 2, 190.91, 0, 0, 0, 0,  0,  0.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002523', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '26ed4478-2b30-5de3-ba83-96749866d006', 'd1962402-4148-5a80-b691-75d24e750af1',  3, 107, 49, 8, 7, 218.37, 0, 0, 0, 0,  0,  0.00, 1, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002524', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'c1c0d96d-ac8e-5e26-a70c-c25f11359448', 'd1962402-4148-5a80-b691-75d24e750af1',  4,  9,  6, 0, 1, 150.00, 0, 0, 0, 0,  0,  0.00, 1, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002525', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'c30ccf9b-cb5c-55cb-9266-d50ec530797d', 'd1962402-4148-5a80-b691-75d24e750af1',  5, 26, 20, 2, 1, 130.00, 4, 0, 29, 0,  8,  7.25, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002526', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'd1b49b26-555f-569a-87eb-f55a7443c614', 'd1962402-4148-5a80-b691-75d24e750af1',  6,  1,  2, 0, 0,  50.00, 4, 0, 39, 2,  6,  9.75, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002527', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '480c03c5-ea83-5913-8a4b-947fc3bf5a28', 'd1962402-4148-5a80-b691-75d24e750af1',  7, 29, 17, 2, 2, 170.59, 2, 0, 26, 1,  3, 13.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002528', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'cbdf43c9-cbd8-5235-936c-14d31366433c', 'd1962402-4148-5a80-b691-75d24e750af1', null, 0,  0, 0, 0,   0.00, 2, 0, 30, 0,  1, 15.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002529', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', '2b2f93bb-fe9d-5b14-abb3-6a5fe6c1a9c8', 'd1962402-4148-5a80-b691-75d24e750af1', null, 0,  0, 0, 0,   0.00, 4, 0, 40, 0,  6, 10.00, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002530', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'a8bcd523-2f54-5dbe-bc14-55c5d83c4bf7', 'd1962402-4148-5a80-b691-75d24e750af1', null, 0,  0, 0, 0,   0.00, 4, 0, 58, 1,  8, 14.50, 0, 0, 0, '2026-06-13T15:00:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002531', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000025', 'b218001e-c822-58e7-ab99-da490578ae53', 'd1962402-4148-5a80-b691-75d24e750af1', null, 0,  0, 0, 0,   0.00, 0, 0, 0, 0,  0,  0.00, 1, 0, 0, '2026-06-13T15:00:00');
+
+
 insert into player_match_stats (
   id,
   match_id,
@@ -138,16 +265,151 @@ values
   ('b8d8f8d2-7a8d-4a0d-9f8d-24d240000263', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000024', '16ec489b-ec1f-537d-bf0e-431af7a9e9f8', '4812e53a-a933-5ecf-a1ec-eb43f09bf2ff', 10, 18, 11, 2, 1, 163.64, 4, 0, 49, 0, 10, 12.25, 0, 0, 0, '2026-06-13T14:30:00'),
   ('b8d8f8d2-7a8d-4a0d-9f8d-24d240000264', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000024', '3e1e44a2-bac8-5ece-8a5c-8c42201bd2be', '4812e53a-a933-5ecf-a1ec-eb43f09bf2ff', 11, 1, 3, 0, 0, 33.33, 1, 0, 15, 0, 1, 15.00, 0, 0, 0, '2026-06-13T14:30:00');
 
+-- Match 26: Chambal Ghariyals vs Indore Pink Panthers
+insert into venues (id, venue_name, city, country, created_at)
+values
+  ('6d2f4b21-7c5e-4a4a-9f31-24e71f0d2401', 'Daly College Ground', 'Indore', 'India', '2026-06-14T09:30:00')
+on conflict (venue_name) do update set
+  city = excluded.city,
+  country = excluded.country,
+  created_at = excluded.created_at
+;
+
+update teams set team_name = 'Chambal Ghariyals' where id = '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e';
+update players set player_name = 'Atharv Joshi' where id = 'e934d378-43e4-5740-a2a1-abeda43b917e';
+update players set player_name = 'Siddarth Patidar' where id = '21662ce5-2368-571f-8d64-26d735145aa5';
+update players set player_name = 'Aayaam Verma' where id = '86a3bdf2-0579-543c-bd84-12d083001309';
+update players set player_name = 'Gautam Raghuwanshi' where id = '33e1f887-5e0a-513d-b17e-d50a5f9eae6f';
+update players set player_name = 'Apurve Dwivedi' where id = '1a2a261a-eab8-5945-805f-ab56e7ee4265';
+update players set player_name = 'Mayur Patel' where id = '661efd97-7f59-5db8-a791-fa9a2779d9cc';
+
+delete from reports where match_id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026';
+delete from player_match_stats where match_id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026';
+delete from matches where id = '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026';
+
+insert into matches (
+  id,
+  match_date,
+  season,
+  tournament,
+  match_number,
+  team_a_id,
+  team_b_id,
+  venue_id,
+  toss_winner_id,
+  toss_decision,
+  bat_first_team_id,
+  bowl_first_team_id,
+  first_innings_score,
+  first_innings_wickets,
+  first_innings_overs,
+  second_innings_score,
+  second_innings_wickets,
+  second_innings_overs,
+  winner_id,
+  loser_id,
+  result_type,
+  margin_runs,
+  margin_wickets,
+  player_of_match_id,
+  notes,
+  created_at
+)
+values (
+  '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026',
+  '2026-06-14',
+  '2026',
+  'MPt20',
+  26,
+  '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e',
+  '582e73b3-b982-5677-b88b-d940deb2e79c',
+  '6d2f4b21-7c5e-4a4a-9f31-24e71f0d2401',
+  '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e',
+  'field',
+  '582e73b3-b982-5677-b88b-d940deb2e79c',
+  '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e',
+  120,
+  10,
+  20,
+  121,
+  6,
+  17.5,
+  '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e',
+  '582e73b3-b982-5677-b88b-d940deb2e79c',
+  'wickets',
+  null,
+  4,
+  '8f53ea6e-5db4-5b51-beec-3cf622142bf7',
+  'Match 26 at Daly College Ground, Indore. Chambal Ghariyals won by 4 wickets with 13 balls remaining after chasing 121/6 in 17.5 overs against Indore Pink Panthers 120/10 in 20 overs. Toss: Chambal Ghariyals won and chose to field. Umpires: Rameez Khan and Abhishek Tomar. Third umpire: Nikhil Patwardhan. Reserve umpire: Rohit Dhakad. Scorer: Mayank Thanwar. Referee: Manish Majithia. Ball type: Leather. Ball color: White.',
+  '2026-06-14T09:30:00'
+);
+
+insert into player_match_stats (
+  id,
+  match_id,
+  player_id,
+  team_id,
+  batting_position,
+  runs,
+  balls,
+  fours,
+  sixes,
+  strike_rate,
+  overs,
+  maidens,
+  runs_conceded,
+  wickets,
+  dot_balls,
+  economy,
+  catches,
+  runouts,
+  stumpings,
+  created_at
+)
+values
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002601', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'e934d378-43e4-5740-a2a1-abeda43b917e', '582e73b3-b982-5677-b88b-d940deb2e79c', 1,  1,  6, 0, 0,  16.67, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002602', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '21662ce5-2368-571f-8d64-26d735145aa5', '582e73b3-b982-5677-b88b-d940deb2e79c', 2, 22, 17, 1, 1, 129.41, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002603', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'f56a747c-cd41-5456-ab5d-60a273526bf4', '582e73b3-b982-5677-b88b-d940deb2e79c', 3,  1,  2, 0, 0,  50.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002604', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '86a3bdf2-0579-543c-bd84-12d083001309', '582e73b3-b982-5677-b88b-d940deb2e79c', 4, 21, 27, 2, 0,  77.78, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002605', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '9b8ce6e3-bb3b-56d0-8930-9c503e517e4d', '582e73b3-b982-5677-b88b-d940deb2e79c', 5, 17, 18, 2, 0,  94.44, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002606', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'd4a25b3f-0333-564f-bc8b-8e57a3b41a99', '582e73b3-b982-5677-b88b-d940deb2e79c', 6,  1,  6, 0, 0,  16.67, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002607', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'a981d5c5-3b3b-523b-9407-aaf99cc9eeb7', '582e73b3-b982-5677-b88b-d940deb2e79c', 7, 12, 15, 1, 0,  80.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002608', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '64e22a56-f1ff-59a6-91b3-6b88e9d0cdeb', '582e73b3-b982-5677-b88b-d940deb2e79c', 8, 22, 16, 2, 1, 137.50, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002609', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '8c118ea4-e9c1-5620-a56e-885ee57dbd4a', '582e73b3-b982-5677-b88b-d940deb2e79c', 9,  0,  1, 0, 0,   0.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002610', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'd52da864-1c4f-53e1-b7b4-94fc1879d773', '582e73b3-b982-5677-b88b-d940deb2e79c', 10, 16, 11, 2, 1, 145.45, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002611', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'c8d836da-3c55-5fa1-b68a-2989f45aab44', '582e73b3-b982-5677-b88b-d940deb2e79c', 11,  0,  1, 0, 0,   0.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002612', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'c8d836da-3c55-5fa1-b68a-2989f45aab44', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 3.5, 0, 27, 0, 11,  7.71, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002613', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '9b8ce6e3-bb3b-56d0-8930-9c503e517e4d', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 4.0, 0, 32, 4, 11,  8.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002614', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '8c118ea4-e9c1-5620-a56e-885ee57dbd4a', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 3.0, 0, 17, 0, 6,  5.67, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002615', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'f56a747c-cd41-5456-ab5d-60a273526bf4', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 1.0, 0, 10, 0, 2, 10.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002616', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'a981d5c5-3b3b-523b-9407-aaf99cc9eeb7', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 3.0, 0, 16, 0, 8,  5.33, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002617', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'd52da864-1c4f-53e1-b7b4-94fc1879d773', '582e73b3-b982-5677-b88b-d940deb2e79c', null, 0, 0, 0, 0, 0, 3.0, 0, 18, 2, 6,  6.00, 0, 0, 0, '2026-06-14T09:30:00'),
+
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002621', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'c3abcf6b-af87-50dd-b6cd-bef5ba923ff4', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 1, 24, 27, 2, 1,  88.89, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002622', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '1a2a261a-eab8-5945-805f-ab56e7ee4265', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 2,  1,  2, 0, 0,  50.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002623', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'bdd646e4-e7c4-51c1-a3bf-f1bac631a751', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 3, 10,  6, 2, 0, 166.67, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002624', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '810363ec-7c2f-59ec-b81f-071000960904', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 4, 29, 24, 3, 1, 120.83, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002625', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '33e1f887-5e0a-513d-b17e-d50a5f9eae6f', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 5, 32, 25, 4, 0, 128.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002626', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '8f53ea6e-5db4-5b51-beec-3cf622142bf7', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 6, 11, 10, 0, 1, 110.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002627', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '661efd97-7f59-5db8-a791-fa9a2779d9cc', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 7,  4,  8, 0, 0,  50.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002628', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'bfd18390-21b9-5c61-8765-373789c7f2f2', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 8,  6,  5, 1, 0, 120.00, 0, 0, 0, 0, 0,  0.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002629', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '59efe8ae-f3df-5200-b756-93fd814d31c6', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 4.0, 0, 20, 0, 14,  5.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002630', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'bfd18390-21b9-5c61-8765-373789c7f2f2', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 3.0, 0, 15, 2, 6,  5.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002631', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '8f53ea6e-5db4-5b51-beec-3cf622142bf7', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 4.0, 0, 29, 3, 13,  7.25, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002632', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '661efd97-7f59-5db8-a791-fa9a2779d9cc', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 3.0, 0, 14, 1, 7,  4.67, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002633', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', 'f9e2b8a7-5d31-5a14-9f3e-24d240001919', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 4.0, 0, 24, 2, 12,  6.00, 0, 0, 0, '2026-06-14T09:30:00'),
+  ('b8d8f8d2-7a8d-4a0d-9f8d-24d240002634', '8a9b4c2d-1f2e-4d3c-8a9b-24d240000026', '29b93c79-f1bc-5d03-ac0c-11d631feaed0', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', null, 0, 0, 0, 0, 0, 2.0, 0, 11, 0, 4,  5.50, 0, 0, 0, '2026-06-14T09:30:00');
+
 insert into players (id, player_name, team_id, role, batting_style, bowling_style, created_at)
 values
   ('b1507fce-9244-5c38-bf11-cfc4aa6461d8', 'Karan Tahliyani', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Batter', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('a7bc20aa-56e2-5c55-aac4-f670c0555a8c', 'Saransh Bhargava', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Batter', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
-  ('e934d378-43e4-5740-a2a1-abeda43b917e', 'Atahrva Joshi', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
-  ('21662ce5-2368-571f-8d64-26d735145aa5', 'Siddharth Patidar', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
+  ('e934d378-43e4-5740-a2a1-abeda43b917e', 'Atharv Joshi', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
+  ('21662ce5-2368-571f-8d64-26d735145aa5', 'Siddarth Patidar', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('0908684a-9fca-5132-9ab2-a0b60545dad4', 'Mehfooz Patel', '582e73b3-b982-5677-b88b-d940deb2e79c', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('f56a747c-cd41-5456-ab5d-60a273526bf4', 'Venkatesh Iyer', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('9b8ce6e3-bb3b-56d0-8930-9c503e517e4d', 'Anvesh Chawla', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
-  ('86a3bdf2-0579-543c-bd84-12d083001309', 'Ayaam Verma', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
+  ('86a3bdf2-0579-543c-bd84-12d083001309', 'Aayaam Verma', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('d4a25b3f-0333-564f-bc8b-8e57a3b41a99', 'Saransh Surana', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('64e22a56-f1ff-59a6-91b3-6b88e9d0cdeb', 'Shubham Rathore', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('a981d5c5-3b3b-523b-9407-aaf99cc9eeb7', 'Lucky Mishra', '582e73b3-b982-5677-b88b-d940deb2e79c', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
@@ -243,15 +505,15 @@ values
   ('810363ec-7c2f-59ec-b81f-071000960904', 'Rohit Kumar Gupta', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Batter', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('bdd646e4-e7c4-51c1-a3bf-f1bac631a751', 'Shubham Sharma', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('bfd18390-21b9-5c61-8765-373789c7f2f2', 'Aman Bhadoria', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
-  ('33e1f887-5e0a-513d-b17e-d50a5f9eae6f', 'Gautam Raghuvanshi', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
+  ('33e1f887-5e0a-513d-b17e-d50a5f9eae6f', 'Gautam Raghuwanshi', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('6d6158a0-64c1-5235-b5f3-55f601773dfd', 'Harsh Dixit', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('8f53ea6e-5db4-5b51-beec-3cf622142bf7', 'Tripuresh Singh', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
   ('4787b00e-afcc-5f5d-8a98-f5d1b96283a1', 'Karan Tiwari', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('84742574-8090-541e-b3ea-45031a5eaad5', 'Diyanshu Yadav', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-01-01T10:00:00'),
-  ('1a2a261a-eab8-5945-805f-ab56e7ee4265', 'Apurva Dwivedi', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
+  ('1a2a261a-eab8-5945-805f-ab56e7ee4265', 'Apurve Dwivedi', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Wicketkeeper', 'Right-hand bat', 'Right-arm medium', '2026-01-01T10:00:00'),
   ('4beced42-4683-5cd7-a3d4-eafb40a735c1', 'Avesh Khan', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
   ('59efe8ae-f3df-5200-b756-93fd814d31c6', 'Akshay Singh', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
-  ('661efd97-7f59-5db8-a791-fa9a2779d9cc', 'Mayur Singh Patel', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
+  ('661efd97-7f59-5db8-a791-fa9a2779d9cc', 'Mayur Patel', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
   ('8f1f6e57-aae3-54b2-b8e1-846e81517c05', 'Piyush Patel', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
   ('f25b9fd7-d8e1-5eeb-877b-84bd2138026c', 'Yash Kumar Lodhi', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),
   ('29b93c79-f1bc-5d03-ac0c-11d631feaed0', 'Madhur Seth', '3c1f7337-b13d-5c07-9c5f-41b3e6c4e25e', 'Bowler', 'Right-hand bat', 'Left-arm fast', '2026-01-01T10:00:00'),

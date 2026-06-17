@@ -84,6 +84,12 @@ export type DashboardData = {
   total_teams: number;
   total_players: number;
   average_first_innings_score: number;
+  total_runs: number;
+  avg_strike_rate: number;
+  avg_economy: number;
+  fours: number;
+  sixes: number;
+  wickets_taken: number;
   chase_win_percentage: number;
   bat_first_win_percentage: number;
   toss_conversion_percentage: number;

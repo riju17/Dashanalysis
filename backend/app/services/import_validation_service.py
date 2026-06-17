@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from typing import Optional
 
-from app.utils.cricket_calculations import safe_divide
+from app.utils.cricket_calculations import parse_overs_to_balls, safe_divide
 
 
 def _normalize_name(value: str) -> str:
@@ -89,7 +89,8 @@ class ImportValidationService:
                 bowling_overs = float(row.get("overs", 0) or 0)
                 runs_conceded = int(row.get("runs_conceded", 0) or 0)
                 economy = float(row.get("economy", 0) or 0)
-                expected_economy = round(safe_divide(runs_conceded, bowling_overs, 0.0), 2) if bowling_overs else 0.0
+                bowling_balls = parse_overs_to_balls(bowling_overs)
+                expected_economy = round(safe_divide(runs_conceded, bowling_balls / 6, 0.0), 2) if bowling_balls else 0.0
                 if bowling_overs and abs(expected_economy - economy) > 0.25:
                     warnings.append(
                         f'Bowling economy mismatch for {row.get("player_name", "")}: expected {expected_economy}, got {economy}.'

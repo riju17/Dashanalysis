@@ -6,9 +6,10 @@ import type { PlayerAnalytics } from "@/types/cricket";
 type Props = {
   data: PlayerAnalytics;
   rankLabel?: string;
+  teamName?: string;
 };
 
-export function PlayerImpactCard({ data, rankLabel }: Props) {
+export function PlayerImpactCard({ data, rankLabel, teamName }: Props) {
   const { player, batting, bowling, impact, insights } = data;
   return (
     <GlassCard className="h-full">
@@ -16,6 +17,7 @@ export function PlayerImpactCard({ data, rankLabel }: Props) {
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">{rankLabel || player.role}</p>
           <h3 className="mt-2 text-xl font-semibold text-white">{player.player_name}</h3>
+          {teamName && <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-400">{teamName}</p>}
           <p className="text-sm text-slate-400">{player.batting_style} • {player.bowling_style}</p>
         </div>
         <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-right">

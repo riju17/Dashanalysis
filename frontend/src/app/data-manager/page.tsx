@@ -34,9 +34,10 @@ export default function DataManagerPage() {
 
   const filtered = useMemo(
     () =>
-      matches.filter((match) =>
-        `${match.tournament} ${match.season} ${match.match_number} ${match.notes || ""}`.toLowerCase().includes(query.toLowerCase()),
-      ),
+      matches
+        .slice()
+        .sort((left, right) => right.match_number - left.match_number)
+        .filter((match) => `${match.tournament} ${match.season} ${match.match_number} ${match.notes || ""}`.toLowerCase().includes(query.toLowerCase())),
     [matches, query],
   );
 

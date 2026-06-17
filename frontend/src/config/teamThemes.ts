@@ -77,8 +77,8 @@ export const teamThemes: Record<string, TeamTheme> = {
     border: "rgba(251,113,133,0.55)",
     ringGradient: "conic-gradient(from 180deg, #F43F5E, #F97316, #FB7185, #F43F5E)",
   },
-  "Chambal Ghariyal": {
-    teamName: "Chambal Ghariyal",
+  "Chambal Ghariyals": {
+    teamName: "Chambal Ghariyals",
     primary: "#10B981",
     secondary: "#34D399",
     accent: "#F59E0B",

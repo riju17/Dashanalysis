@@ -39,6 +39,14 @@ export default function DashboardPage() {
   }, []);
 
   const theme = getTeamTheme("Indore Pink Panthers");
+  const dashboardTotals = [
+    { label: "Total Runs", value: data ? data.total_runs.toLocaleString() : "0" },
+    { label: "Wickets", value: data ? data.wickets_taken.toLocaleString() : "0" },
+    { label: "4s", value: data ? data.fours.toLocaleString() : "0" },
+    { label: "6s", value: data ? data.sixes.toLocaleString() : "0" },
+    { label: "Avg Strike Rate", value: `${data ? data.avg_strike_rate.toFixed(2) : "0.00"}%` },
+    { label: "Avg Economy", value: data ? data.avg_economy.toFixed(2) : "0.00" },
+  ];
 
   return (
     <AppShell
@@ -61,6 +69,29 @@ export default function DashboardPage() {
             <KPICard label="Toss Conversion %" value={`${data.toss_conversion_percentage.toFixed(1)}%`} icon={<Target className="h-4 w-4" />} theme={theme} />
             <KPICard label="Highest Score" value={data.highest_score} icon={<Scale className="h-4 w-4" />} theme={theme} />
           </div>
+
+          <GlassCard className="overflow-hidden border border-cyan-300/20 bg-gradient-to-r from-slate-950 via-cyan-950/70 to-slate-950">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">Match Totals</p>
+                <h3 className="mt-2 text-lg font-semibold text-white">Aggregate batting and bowling output</h3>
+              </div>
+              <p className="text-sm text-cyan-100/80">Team-wide performance snapshot</p>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+              {dashboardTotals.map((item, index) => (
+                <div
+                  key={item.label}
+                  className={`rounded-2xl border px-4 py-4 ${
+                    index % 2 === 0 ? "border-cyan-300/20 bg-cyan-400/10" : "border-amber-300/20 bg-amber-400/10"
+                  }`}
+                >
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-slate-300/80">{item.label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
 
           <div className="grid gap-4 xl:grid-cols-2">
             <WinLossChart data={data.team_win_percentage_chart as any} />

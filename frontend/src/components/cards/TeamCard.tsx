@@ -1,7 +1,6 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/GlassCard";
-import { cn } from "@/lib/utils";
 import type { TeamAnalytics } from "@/types/cricket";
 
 type TeamCardProps = {
@@ -18,6 +17,8 @@ type TeamCardProps = {
 
 export function TeamCard({ data, theme }: TeamCardProps) {
   const { team, metrics, insights } = data;
+  const formatPercent = (value: number | undefined) => `${(value ?? 0).toFixed(2)}%`;
+  const formatNumber = (value: number | undefined) => (value ?? 0).toLocaleString();
   return (
     <GlassCard className="relative overflow-hidden">
       <div
@@ -42,16 +43,34 @@ export function TeamCard({ data, theme }: TeamCardProps) {
       </div>
       <div className="relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          ["Win %", metrics.win_percentage],
-          ["Bat first %", metrics.bat_first_win_percentage],
-          ["Chase %", metrics.chase_win_percentage],
-          ["Toss conv %", metrics.toss_conversion_percentage],
+          ["Win %", formatPercent(metrics.win_percentage)],
+          ["Bat first %", formatPercent(metrics.bat_first_win_percentage)],
+          ["Chase %", formatPercent(metrics.chase_win_percentage)],
+          ["Toss conv %", formatPercent(metrics.toss_conversion_percentage)],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
             <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{label as string}</p>
-            <p className="mt-2 text-lg font-semibold text-white">{typeof value === "number" ? `${value}%` : value}</p>
+            <p className="mt-2 text-lg font-semibold text-white">{value as string}</p>
           </div>
         ))}
+      </div>
+      <div className="relative mt-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Team totals</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
+          {[
+            ["Runs", formatNumber(metrics.total_runs)],
+            ["Avg SR", formatPercent(metrics.avg_strike_rate)],
+            ["Avg Econ", (metrics.avg_economy ?? 0).toFixed(2)],
+            ["Fours", formatNumber(metrics.fours)],
+            ["Sixes", formatNumber(metrics.sixes)],
+            ["Wickets", formatNumber(metrics.wickets_taken)],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{label as string}</p>
+              <p className="mt-2 text-lg font-semibold text-white">{value as string}</p>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="relative mt-5 space-y-2 text-sm text-slate-300">
         {insights.slice(0, 3).map((insight) => (

@@ -21,6 +21,7 @@ export default function TeamsPage() {
 
   const selectedTeam = useMemo(() => teams.find((team) => team.id === selectedTeamId) || teams[0], [teams, selectedTeamId]);
   const theme = getTeamTheme(selectedTeam?.team_name);
+  const teamLookup = useMemo(() => new Map(teams.map((team) => [team.id, team.team_name])), [teams]);
 
   const load = async () => {
     setLoading(true);
@@ -90,13 +91,36 @@ export default function TeamsPage() {
               </div>
             </GlassCard>
             <GlassCard>
-              <h3 className="text-lg font-semibold text-white">Recent matches</h3>
+              <h3 className="text-lg font-semibold text-white">Match history</h3>
               <div className="mt-4 space-y-2">
-                {teamAnalytics.recent_matches.map((match) => (
-                  <div key={match.id} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                    Match {match.match_number} • {match.tournament} • {match.first_innings_score}-{match.second_innings_score}
+                {teamAnalytics.recent_matches.map((match) => {
+                  const isWin = match.winner_id === selectedTeamId;
+                  const opponentId = match.team_a_id === selectedTeamId ? match.team_b_id : match.team_a_id;
+                  const opponentName = teamLookup.get(opponentId) || "Unknown opponent";
+                  const teamScore = match.bat_first_team_id === selectedTeamId ? match.first_innings_score : match.second_innings_score;
+                  const opponentScore = match.bat_first_team_id === selectedTeamId ? match.second_innings_score : match.first_innings_score;
+
+                  return (
+                  <div key={match.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                    <span
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                        isWin ? "bg-emerald-400/20 text-emerald-200" : "bg-rose-400/20 text-rose-200"
+                      }`}
+                    >
+                      {isWin ? "W" : "L"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-white">Match {match.match_number} • vs {opponentName}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                        {isWin ? "Won" : "Lost"} • {match.tournament} • {match.match_date}
+                      </p>
+                    </div>
+                    <p className="text-right text-sm font-semibold text-white">
+                      {teamScore ?? 0}-{opponentScore ?? 0}
+                    </p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </GlassCard>
           </div>

@@ -153,19 +153,25 @@ class ReportResponse(BaseModel):
 
 
 class DashboardResponse(BaseModel):
-    total_matches: int
-    total_teams: int
-    total_players: int
-    average_first_innings_score: float
-    chase_win_percentage: float
-    bat_first_win_percentage: float
-    toss_conversion_percentage: float
-    highest_score: int
-    top_run_scorers: list[dict[str, Any]]
-    top_wicket_takers: list[dict[str, Any]]
-    team_win_percentage_chart: list[dict[str, Any]]
-    venue_score_chart: list[dict[str, Any]]
-    summary_points: list[str]
+  total_matches: int
+  total_teams: int
+  total_players: int
+  average_first_innings_score: float
+  total_runs: int
+  avg_strike_rate: float
+  avg_economy: float
+  fours: int
+  sixes: int
+  wickets_taken: int
+  chase_win_percentage: float
+  bat_first_win_percentage: float
+  toss_conversion_percentage: float
+  highest_score: int
+  top_run_scorers: list[dict[str, Any]]
+  top_wicket_takers: list[dict[str, Any]]
+  team_win_percentage_chart: list[dict[str, Any]]
+  venue_score_chart: list[dict[str, Any]]
+  summary_points: list[str]
 
 
 class TeamAnalyticsResponse(BaseModel):
