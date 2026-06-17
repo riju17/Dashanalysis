@@ -11,13 +11,18 @@ from app.api.routes_teams import router as teams_router
 from app.api.routes_venues import router as venues_router
 from app.core.config import settings
 
-
-app = FastAPI(
-    title=settings.app_name,
-    version="1.0.0",
-    description="StatStrike Match Intelligence Engine backend API",
-)
-
+app = FastAPI()
+# app = FastAPI(
+#     title=settings.app_name,
+#     version="1.0.0",
+#     description="StatStrike Match Intelligence Engine backend API",
+# )
+@app.get("/")
+def root():
+    return {
+        "message": "DashAnalysis API is running",
+        "docs": "/docs"
+    }
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
