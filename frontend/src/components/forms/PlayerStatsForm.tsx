@@ -9,6 +9,7 @@ type PlayerStatRow = {
   player_id: string;
   team_id: string;
   batting_position: number;
+  dismissal: string;
   runs: number;
   balls: number;
   fours: number;
@@ -38,6 +39,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
     player_id: players[0]?.id || "",
     team_id: players[0]?.team_id || "",
     batting_position: 1,
+    dismissal: "",
     runs: 0,
     balls: 0,
     fours: 0,
@@ -70,6 +72,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "1 for opener, 4-7 for middle order, 0 if not batted",
       section: "Batting",
       placeholder: "1",
+      inputType: "number",
     },
     {
       key: "runs",
@@ -77,6 +80,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Total runs scored by the player",
       section: "Batting",
       placeholder: "Runs scored",
+      inputType: "number",
     },
     {
       key: "balls",
@@ -84,6 +88,15 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Total balls faced while batting",
       section: "Batting",
       placeholder: "Balls faced",
+      inputType: "number",
+    },
+    {
+      key: "dismissal",
+      label: "Dismissal",
+      helper: "How the batter got out, e.g. c fielder b bowler or not out",
+      section: "Batting",
+      placeholder: "Dismissal",
+      inputType: "text",
     },
     {
       key: "fours",
@@ -91,6 +104,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Number of boundaries hit along the ground",
       section: "Batting",
       placeholder: "Fours",
+      inputType: "number",
     },
     {
       key: "sixes",
@@ -98,6 +112,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Number of sixes hit over the boundary",
       section: "Batting",
       placeholder: "Sixes",
+      inputType: "number",
     },
     {
       key: "overs",
@@ -105,6 +120,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Overs completed in bowling; use decimals like 3.4 if needed",
       section: "Bowling",
       placeholder: "Overs",
+      inputType: "number",
     },
     {
       key: "wickets",
@@ -112,6 +128,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Total wickets taken by the bowler",
       section: "Bowling",
       placeholder: "Wickets",
+      inputType: "number",
     },
     {
       key: "runs_conceded",
@@ -119,6 +136,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Runs given away in bowling",
       section: "Bowling",
       placeholder: "Runs conceded",
+      inputType: "number",
     },
     {
       key: "dot_balls",
@@ -126,6 +144,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Balls that conceded no runs",
       section: "Bowling",
       placeholder: "Dot balls",
+      inputType: "number",
     },
     {
       key: "maidens",
@@ -133,6 +152,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Overs where no runs were conceded",
       section: "Bowling",
       placeholder: "Maidens",
+      inputType: "number",
     },
     {
       key: "catches",
@@ -140,6 +160,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Catches taken in the field",
       section: "Fielding",
       placeholder: "Catches",
+      inputType: "number",
     },
     {
       key: "runouts",
@@ -147,6 +168,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Direct or assisted run-outs",
       section: "Fielding",
       placeholder: "Run-outs",
+      inputType: "number",
     },
     {
       key: "stumpings",
@@ -154,6 +176,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
       helper: "Stumpings completed by the wicketkeeper",
       section: "Fielding",
       placeholder: "Stumpings",
+      inputType: "number",
     },
   ] as const;
 
@@ -271,9 +294,14 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
                     <label key={field.key} className="block">
                       <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-slate-400">{field.label}</span>
                       <input
-                        type="number"
+                        type={field.inputType ?? "number"}
                         value={(draft as any)[field.key]}
-                        onChange={(e) => setDraft((current) => ({ ...current, [field.key]: Number(e.target.value) }))}
+                        onChange={(e) =>
+                          setDraft((current) => ({
+                            ...current,
+                            [field.key]: field.inputType === "text" ? e.target.value : Number(e.target.value),
+                          }))
+                        }
                         placeholder={field.placeholder}
                         className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/50"
                       />
@@ -305,7 +333,7 @@ export function PlayerStatsForm({ players, matchTeams = [], value, onChange }: P
               <div key={`${row.player_id}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
                 <span className="text-white">{playerNameMap.get(row.player_id) || row.player_id}</span>
                 <span className="text-slate-400">
-                  Runs {row.runs} • Balls {row.balls} • Wickets {row.wickets}
+                  Dismissal {row.dismissal || "—"} • Runs {row.runs} • Balls {row.balls} • Wickets {row.wickets}
                 </span>
                 <button className="text-xs text-rose-300" onClick={() => removeRow(index)}>
                   Remove

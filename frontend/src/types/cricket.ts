@@ -62,6 +62,7 @@ export type MatchPlayerStatRecord = {
   player_id: string;
   team_id: string;
   batting_position?: number | null;
+  dismissal?: string | null;
   runs: number;
   balls: number;
   fours: number;

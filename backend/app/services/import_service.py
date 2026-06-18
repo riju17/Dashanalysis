@@ -259,6 +259,7 @@ class ImportService:
                         "player_id": player["id"],
                         "team_id": batting_team_id,
                         "batting_position": batting_index,
+                        "dismissal": None,
                         "runs": 0,
                         "balls": 0,
                         "fours": 0,
@@ -278,6 +279,7 @@ class ImportService:
                 row.update(
                     {
                         "batting_position": batting_index,
+                        "dismissal": (batting_row.get("dismissal") or None),
                         "runs": int(batting_row.get("runs", 0) or 0),
                         "balls": int(batting_row.get("balls", 0) or 0),
                         "fours": int(batting_row.get("fours", 0) or 0),
@@ -296,6 +298,7 @@ class ImportService:
                         "player_id": player["id"],
                         "team_id": bowling_team_id,
                         "batting_position": None,
+                        "dismissal": None,
                         "runs": 0,
                         "balls": 0,
                         "fours": 0,

@@ -90,6 +90,16 @@ class InMemoryStore:
         return snapshot
 
     def list(self, table: str):
+        if table == "player_match_stats":
+            remote_table = self._remote_table(table)
+            if remote_table is not None:
+                try:
+                    response = remote_table.select("*").execute()
+                    return deepcopy(response.data or [])
+                except Exception:
+                    logger.exception("Failed to read remote table '%s' for list().", table)
+            return self._local_rows(table)
+
         cached = self._cached_rows(table)
         if cached is not None:
             return cached
