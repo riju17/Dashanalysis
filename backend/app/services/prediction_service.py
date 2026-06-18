@@ -20,16 +20,19 @@ class PredictionService:
         toss_decision: Optional[str] = None,
         bat_first_team_id: Optional[str] = None,
     ) -> dict[str, Any]:
-        team_a = self.analytics.team_summary(team_a_id)
-        team_b = self.analytics.team_summary(team_b_id)
-        venue = self.analytics.venue_summary(venue_id)
-        h2h = self.analytics.head_to_head(team_a_id, team_b_id)
+        context = self.analytics.store.snapshot(["teams", "venues", "matches", "player_match_stats"])
+        team_a = self.analytics.team_summary(team_a_id, context=context)
+        team_b = self.analytics.team_summary(team_b_id, context=context)
+        venue = self.analytics.venue_summary(venue_id, context=context)
+        h2h = self.analytics.head_to_head(team_a_id, team_b_id, context=context)
 
         score_a = 50.0
         score_b = 50.0
         reasoning = []
         advantages = []
         risks = []
+        team_a_name = (team_a.get("team") or {}).get("team_name", "Team A")
+        team_b_name = (team_b.get("team") or {}).get("team_name", "Team B")
 
         win_diff = team_a["metrics"].get("win_percentage", 0) - team_b["metrics"].get("win_percentage", 0)
         strength_diff = team_a["metrics"].get("team_strength_score", 0) - team_b["metrics"].get("team_strength_score", 0)
@@ -71,15 +74,15 @@ class PredictionService:
 
         if team_a_probability >= team_b_probability:
             recommended = "Team A should align with the strongest venue phase and play to their batting-strength advantage."
-            advantages.append(f"{team_a['team']['team_name']} has the higher current model score.")
+            advantages.append(f"{team_a_name} has the higher current model score.")
         else:
             recommended = "Team B should use the toss and matchups to push the game into their stronger phase."
-            advantages.append(f"{team_b['team']['team_name']} has the higher current model score.")
+            advantages.append(f"{team_b_name} has the higher current model score.")
 
         if team_a["metrics"].get("chase_win_percentage", 0) > team_a["metrics"].get("bat_first_win_percentage", 0):
-            reasoning.append(f"{team_a['team']['team_name']} has a stronger chase profile.")
+            reasoning.append(f"{team_a_name} has a stronger chase profile.")
         if team_b["metrics"].get("bat_first_win_percentage", 0) > team_b["metrics"].get("chase_win_percentage", 0):
-            reasoning.append(f"{team_b['team']['team_name']} defends well when batting first.")
+            reasoning.append(f"{team_b_name} defends well when batting first.")
         reasoning.append(
             f"Head-to-head edge is {h2h['metrics'].get('team_a_win_percentage', 0)}% for Team A and {h2h['metrics'].get('team_b_win_percentage', 0)}% for Team B."
         )

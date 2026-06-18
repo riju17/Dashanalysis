@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
+import logging
 from typing import Any
 
 import pandas as pd
@@ -20,180 +21,72 @@ from app.utils.cricket_calculations import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 class AnalyticsService:
     def __init__(self, data_store=store):
         self.store = data_store
 
-    def _teams(self) -> list[dict[str, Any]]:
-        return self.store.list("teams")
+    def _context(self, context: dict[str, list[dict[str, Any]]] | None, *tables: str) -> dict[str, list[dict[str, Any]]]:
+        if context is not None:
+            return context
+        return self.store.snapshot(tables)
 
-    def _venues(self) -> list[dict[str, Any]]:
-        return self.store.list("venues")
+    def _rows(self, context: dict[str, list[dict[str, Any]]], table: str) -> list[dict[str, Any]]:
+        return list(context.get(table, []))
 
-    def _players(self) -> list[dict[str, Any]]:
-        return self.store.list("players")
+    def _teams(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        return self._rows(self._context(context, "teams"), "teams")
 
-    def _matches(self) -> list[dict[str, Any]]:
-        return self.store.list("matches")
+    def _venues(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        return self._rows(self._context(context, "venues"), "venues")
 
-    def _stats(self) -> list[dict[str, Any]]:
-        return self.store.list("player_match_stats")
+    def _players(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        return self._rows(self._context(context, "players"), "players")
 
-    def _team_lookup(self) -> dict[str, dict[str, Any]]:
-        return {team["id"]: team for team in self._teams()}
+    def _matches(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        return self._rows(self._context(context, "matches"), "matches")
 
-    def _player_lookup(self) -> dict[str, dict[str, Any]]:
-        return {player["id"]: player for player in self._players()}
+    def _stats(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        return self._rows(self._context(context, "player_match_stats"), "player_match_stats")
 
-    def _venue_lookup(self) -> dict[str, dict[str, Any]]:
-        return {venue["id"]: venue for venue in self._venues()}
+    def _team_lookup(self, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, dict[str, Any]]:
+        return {str(team.get("id")): team for team in self._teams(context)}
 
-    def _overs_total(self, overs_values: pd.Series) -> tuple[float, int]:
-        balls = sum(parse_overs_to_balls(float(overs or 0)) for overs in overs_values.fillna(0).tolist())
-        return balls_to_overs(int(balls)), int(balls)
+    def _player_lookup(self, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, dict[str, Any]]:
+        return {str(player.get("id")): player for player in self._players(context)}
 
-    def _matches_df(self) -> pd.DataFrame:
-        matches = self._matches()
-        return pd.DataFrame(matches) if matches else pd.DataFrame(columns=["id"])
+    def _venue_lookup(self, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, dict[str, Any]]:
+        return {str(venue.get("id")): venue for venue in self._venues(context)}
 
-    def _stats_df(self) -> pd.DataFrame:
-        stats = self._stats()
-        return pd.DataFrame(stats) if stats else pd.DataFrame(columns=["id"])
-
-    def dashboard_summary(self) -> dict[str, Any]:
-        matches = self._matches()
-        teams = self._teams()
-        players = self._players()
-        stats_df = self._stats_df()
-        matches_df = self._matches_df()
-        total_runs = int(stats_df["runs"].sum()) if not stats_df.empty else 0
-        total_balls = int(stats_df["balls"].sum()) if not stats_df.empty else 0
-        _overs_display, total_bowler_balls = self._overs_total(stats_df["overs"]) if not stats_df.empty and "overs" in stats_df else (0.0, 0)
-        total_runs_conceded = int(stats_df["runs_conceded"].sum()) if not stats_df.empty else 0
-        total_fours = int(stats_df["fours"].sum()) if not stats_df.empty else 0
-        total_sixes = int(stats_df["sixes"].sum()) if not stats_df.empty else 0
-        total_wickets = int(stats_df["wickets"].sum()) if not stats_df.empty else 0
-
-        average_first_innings_score = round(matches_df["first_innings_score"].mean(), 2) if not matches_df.empty else 0.0
-        chase_wins = [m for m in matches if m.get("winner_id") and str(m.get("winner_id")) != str(m.get("bat_first_team_id"))]
-        chase_win_percentage = round(percentage(len(chase_wins), len(matches)), 2) if matches else 0.0
-        bat_first_wins = [
-            m
-            for m in matches
-            if m.get("winner_id") and m.get("bat_first_team_id") and str(m["winner_id"]) == str(m["bat_first_team_id"])
-        ]
-        bat_first_total = [m for m in matches if m.get("bat_first_team_id")]
-        bat_first_win_percentage = round(percentage(len(bat_first_wins), len(bat_first_total)), 2) if bat_first_total else 0.0
-
-        toss_wins = [m for m in matches if m.get("toss_winner_id")]
-        toss_conversion_wins = [m for m in matches if m.get("toss_winner_id") and m.get("winner_id") == m.get("toss_winner_id")]
-        toss_conversion_percentage = round(percentage(len(toss_conversion_wins), len(toss_wins)), 2) if toss_wins else 0.0
-
-        highest_score = int(matches_df["first_innings_score"].max()) if not matches_df.empty else 0
-        player_lookup = self._player_lookup()
-        team_win_percentage_chart = [
-            {"team_id": team["id"], "team_name": team["team_name"], **self.team_summary(team["id"])["metrics"]}
-            for team in teams
-        ]
-        venue_score_chart = [
-            {"venue_id": venue["id"], "venue_name": venue["venue_name"], **self.venue_summary(venue["id"])["metrics"]}
-            for venue in self._venues()
-        ]
-        top_run_scorers = []
-        top_wicket_takers = []
-        if not stats_df.empty:
-            runs_table = stats_df.groupby("player_id", as_index=False)["runs"].sum().sort_values("runs", ascending=False).head(5)
-            wickets_table = stats_df.groupby("player_id", as_index=False)["wickets"].sum().sort_values("wickets", ascending=False).head(5)
-            top_run_scorers = [
-                {
-                    "player_id": str(row["player_id"]),
-                    "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
-                    "runs": int(row["runs"]),
-                }
-                for _, row in runs_table.iterrows()
-            ]
-            top_wicket_takers = [
-                {
-                    "player_id": str(row["player_id"]),
-                    "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
-                    "wickets": int(row["wickets"]),
-                }
-                for _, row in wickets_table.iterrows()
-            ]
-
-        summary_points = [
-            f"{len(matches)} completed matches analysed across {len(teams)} teams.",
-            f"Average first innings score sits at {average_first_innings_score:.1f}.",
-            f"Toss winners converted into victories {toss_conversion_percentage:.1f}% of the time.",
-        ]
+    def _empty_dashboard(self) -> dict[str, Any]:
         return {
-            "total_matches": len(matches),
-            "total_teams": len(teams),
-            "total_players": len(players),
-            "average_first_innings_score": average_first_innings_score,
-            "total_runs": total_runs,
-            "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
-            "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
-            "fours": total_fours,
-            "sixes": total_sixes,
-            "wickets_taken": total_wickets,
-            "chase_win_percentage": chase_win_percentage,
-            "bat_first_win_percentage": bat_first_win_percentage,
-            "toss_conversion_percentage": toss_conversion_percentage,
-            "highest_score": highest_score,
-            "top_run_scorers": top_run_scorers,
-            "top_wicket_takers": top_wicket_takers,
-            "team_win_percentage_chart": team_win_percentage_chart,
-            "venue_score_chart": venue_score_chart,
-            "summary_points": summary_points,
+            "total_matches": 0,
+            "total_teams": 0,
+            "total_players": 0,
+            "average_first_innings_score": 0.0,
+            "total_runs": 0,
+            "avg_strike_rate": 0.0,
+            "avg_economy": 0.0,
+            "fours": 0,
+            "sixes": 0,
+            "wickets_taken": 0,
+            "chase_win_percentage": 0.0,
+            "bat_first_win_percentage": 0.0,
+            "toss_conversion_percentage": 0.0,
+            "highest_score": 0,
+            "top_run_scorers": [],
+            "top_wicket_takers": [],
+            "team_win_percentage_chart": [],
+            "venue_score_chart": [],
+            "summary_points": [],
         }
 
-    def standings(self) -> list[dict[str, Any]]:
-        standings_rows: list[dict[str, Any]] = []
-        for team in self._teams():
-            team_matches = [m for m in self._matches() if str(m.get("team_a_id")) == team["id"] or str(m.get("team_b_id")) == team["id"]]
-            wins = [m for m in team_matches if str(m.get("winner_id")) == team["id"]]
-            losses = [m for m in team_matches if m.get("winner_id") and str(m.get("winner_id")) != team["id"]]
-            runs_for = 0.0
-            runs_against = 0.0
-            overs_for_balls = 0
-            overs_against_balls = 0
-            for match in team_matches:
-                if str(match.get("bat_first_team_id")) == team["id"]:
-                    runs_for += float(match.get("first_innings_score") or 0)
-                    overs_for_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
-                    runs_against += float(match.get("second_innings_score") or 0)
-                    overs_against_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
-                else:
-                    runs_for += float(match.get("second_innings_score") or 0)
-                    overs_for_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
-                    runs_against += float(match.get("first_innings_score") or 0)
-                    overs_against_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
-            run_rate_for = safe_divide(runs_for, overs_for_balls / 6, 0.0)
-            run_rate_against = safe_divide(runs_against, overs_against_balls / 6, 0.0)
-            nrr = round(run_rate_for - run_rate_against, 3)
-            standings_rows.append(
-                {
-                    "team_id": team["id"],
-                    "team_name": team["team_name"],
-                    "played": len(team_matches),
-                    "wins": len(wins),
-                    "losses": len(losses),
-                    "points": len(wins) * 2,
-                    "nrr": f"{nrr:.3f}",
-                }
-            )
-        standings_rows.sort(key=lambda row: (row["points"], float(row["nrr"])), reverse=True)
-        return standings_rows
-
-    def team_summary(self, team_id: str) -> dict[str, Any]:
-        team = self.store.get("teams", team_id)
-        if not team:
-            return {"team": None, "metrics": {}, "insights": [], "recent_matches": [], "head_to_head_summary": []}
-
-        matches = [m for m in self._matches() if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id]
-        if not matches:
-            metrics = {
+    def _empty_team_summary(self, team: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "team": team,
+            "metrics": {
                 "matches_played": 0,
                 "wins": 0,
                 "losses": 0,
@@ -217,263 +110,538 @@ class AnalyticsService:
                 "wickets_taken": 0,
                 "form_index": 0.0,
                 "team_strength_score": 0.0,
-            }
-            return {"team": team, "metrics": metrics, "insights": ["No matches available for this team yet."], "recent_matches": [], "head_to_head_summary": []}
-
-        team_stats = self.store.filter("player_match_stats", team_id=team_id)
-        team_stats_df = pd.DataFrame(team_stats) if team_stats else pd.DataFrame(columns=["id"])
-        wins = [m for m in matches if str(m.get("winner_id")) == team_id]
-        losses = [m for m in matches if str(m.get("loser_id")) == team_id]
-        bat_first_matches = [m for m in matches if str(m.get("bat_first_team_id")) == team_id]
-        chase_matches = [m for m in matches if str(m.get("bat_first_team_id")) != team_id]
-        bat_first_wins = [m for m in bat_first_matches if str(m.get("winner_id")) == team_id]
-        chase_wins = [m for m in chase_matches if str(m.get("winner_id")) == team_id]
-        toss_wins = [m for m in matches if str(m.get("toss_winner_id")) == team_id]
-        wins_after_toss = [m for m in matches if str(m.get("toss_winner_id")) == team_id and str(m.get("winner_id")) == team_id]
-        scores_batting_first = [m.get("first_innings_score", 0) for m in bat_first_matches if m.get("first_innings_score") is not None]
-        scores_chasing = [m.get("second_innings_score", 0) for m in chase_matches if m.get("second_innings_score") is not None]
-        recent_matches = sorted(
-            matches,
-            key=lambda item: (int(item.get("match_number") or 0), str(item.get("match_date") or "")),
-            reverse=True,
-        )
-        total_runs = int(team_stats_df["runs"].sum()) if not team_stats_df.empty else 0
-        total_balls = int(team_stats_df["balls"].sum()) if not team_stats_df.empty else 0
-        _overs_display, total_bowler_balls = self._overs_total(team_stats_df["overs"]) if not team_stats_df.empty and "overs" in team_stats_df else (0.0, 0)
-        total_runs_conceded = int(team_stats_df["runs_conceded"].sum()) if not team_stats_df.empty else 0
-        total_fours = int(team_stats_df["fours"].sum()) if not team_stats_df.empty else 0
-        total_sixes = int(team_stats_df["sixes"].sum()) if not team_stats_df.empty else 0
-        total_wickets = int(team_stats_df["wickets"].sum()) if not team_stats_df.empty else 0
-        recent_form_index = self._recent_form_index(team_id)
-        batting_strength = clamp((percentage(len(bat_first_wins), len(bat_first_matches)) + percentage(len(chase_wins), len(chase_matches))) / 2)
-        bowling_strength = clamp((percentage(len(wins_after_toss), len(toss_wins)) + percentage(len(wins), len(matches))) / 2)
-
-        metrics = {
-            "matches_played": len(matches),
-            "wins": len(wins),
-            "losses": len(losses),
-            "win_percentage": round(percentage(len(wins), len(matches)), 2),
-            "bat_first_matches": len(bat_first_matches),
-            "bat_first_wins": len(bat_first_wins),
-            "bat_first_win_percentage": round(percentage(len(bat_first_wins), len(bat_first_matches)), 2),
-            "chase_matches": len(chase_matches),
-            "chase_wins": len(chase_wins),
-            "chase_win_percentage": round(percentage(len(chase_wins), len(chase_matches)), 2),
-            "toss_wins": len(toss_wins),
-            "wins_after_toss": len(wins_after_toss),
-            "toss_conversion_percentage": round(percentage(len(wins_after_toss), len(toss_wins)), 2),
-            "average_score_batting_first": round(sum(scores_batting_first) / len(scores_batting_first), 2) if scores_batting_first else 0.0,
-            "average_score_chasing": round(sum(scores_chasing) / len(scores_chasing), 2) if scores_chasing else 0.0,
-            "total_runs": total_runs,
-            "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
-            "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
-            "fours": total_fours,
-            "sixes": total_sixes,
-            "wickets_taken": total_wickets,
-            "form_index": round(recent_form_index, 2),
-            "team_strength_score": round(
-                team_strength_score(
-                    percentage(len(wins), len(matches)),
-                    recent_form_index,
-                    batting_strength,
-                    bowling_strength,
-                ),
-                2,
-            ),
+            },
+            "insights": ["Analytics temporarily unavailable."],
+            "recent_matches": [],
+            "head_to_head_summary": [],
         }
-        head_to_head_summary = []
-        for opponent in self._teams():
-            if opponent["id"] == team_id:
-                continue
-            summary = self.head_to_head(team_id, opponent["id"])
-            if summary["metrics"]["matches_played"]:
-                head_to_head_summary.append(summary["metrics"])
-        insights = self._team_insights_from_metrics(team, metrics)
+
+    def _empty_player_summary(self, player: dict[str, Any] | None = None) -> dict[str, Any]:
         return {
-            "team": team,
-            "metrics": metrics,
-            "insights": insights,
-            "recent_matches": recent_matches,
-            "head_to_head_summary": head_to_head_summary[:5],
+            "player": player,
+            "batting": {},
+            "bowling": {},
+            "impact": {},
+            "insights": ["Analytics temporarily unavailable."],
         }
 
-    def player_summary(self, player_id: str) -> dict[str, Any]:
-        player = self.store.get("players", player_id)
-        if not player:
-            return {"player": None, "batting": {}, "bowling": {}, "impact": {}, "insights": []}
+    def _empty_venue_summary(self, venue: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {"venue": venue, "metrics": {}, "insights": ["Analytics temporarily unavailable."]}
 
-        stats = self.store.filter("player_match_stats", player_id=player_id)
-        stats_df = pd.DataFrame(stats) if stats else pd.DataFrame()
-        overs_balls = 0
-        if stats_df.empty:
-            batting = {
-                "total_runs": 0,
-                "total_balls": 0,
-                "batting_strike_rate": 0.0,
-                "average_runs_per_match": 0.0,
-                "fours": 0,
-                "sixes": 0,
-                "boundary_percentage": 0.0,
-                "finishing_score": 0.0,
-            }
-            bowling = {
-                "overs": 0.0,
-                "wickets": 0,
-                "economy": 0.0,
-                "dot_ball_percentage": 0.0,
-                "bowling_strike_impact": 0.0,
-                "pressure_bowling_score": 0.0,
-            }
-        else:
-            total_runs = int(stats_df["runs"].sum())
-            total_balls = int(stats_df["balls"].sum())
-            total_matches = max(len(stats_df), 1)
-            fours = int(stats_df["fours"].sum())
-            sixes = int(stats_df["sixes"].sum())
-            overs, overs_balls = self._overs_total(stats_df["overs"]) if "overs" in stats_df else (0.0, 0)
-            wickets = int(stats_df["wickets"].sum())
-            dot_balls = int(stats_df["dot_balls"].sum())
-            runs_conceded = float(stats_df["runs_conceded"].sum())
-            batting_strike_rate = round(percentage(total_runs, total_balls), 2) if total_balls else 0.0
-            batting = {
-                "total_runs": total_runs,
-                "total_balls": total_balls,
-                "batting_strike_rate": round((total_runs / total_balls) * 100, 2) if total_balls else 0.0,
-                "average_runs_per_match": round(total_runs / total_matches, 2),
-                "fours": fours,
-                "sixes": sixes,
-                "boundary_percentage": round(percentage(fours + sixes, total_balls), 2) if total_balls else 0.0,
-                "finishing_score": round(batting_impact(total_runs, batting_strike_rate, fours, sixes), 2),
-            }
-            bowling = {
-                "overs": overs,
-                "wickets": wickets,
-                "economy": round(runs_conceded / overs, 2) if overs else 0.0,
-                "dot_ball_percentage": round(percentage(dot_balls, overs_balls), 2) if overs_balls else 0.0,
-                "bowling_strike_impact": round((wickets * 25) + (dot_balls * 1.25), 2),
-                "pressure_bowling_score": round(bowling_impact(wickets, dot_balls, round(runs_conceded / overs, 2) if overs else 0.0), 2),
-            }
-
-        impact = {
-            "batting_impact": round(batting_impact(batting.get("total_runs", 0), batting.get("batting_strike_rate", 0.0), batting.get("fours", 0), batting.get("sixes", 0)), 2),
-            "bowling_impact": round(
-                bowling_impact(
-                    bowling.get("wickets", 0),
-                    int((bowling.get("dot_ball_percentage", 0) / 100) * overs_balls) if overs_balls else 0,
-                    bowling.get("economy", 0.0),
-                ),
-                2,
-            ),
+    def _empty_toss_summary(self) -> dict[str, Any]:
+        return {
+            "overall": {
+                "toss_winner_match_win_percentage": 0.0,
+                "bat_decision_success_percentage": 0.0,
+                "bowl_decision_success_percentage": 0.0,
+            },
+            "team_wise": [],
+            "insights": ["Analytics temporarily unavailable."],
         }
-        impact["all_rounder_index"] = round(all_rounder_index(impact["batting_impact"], impact["bowling_impact"]), 2)
-        insights = self._player_insights_from_metrics(player, batting, bowling, impact)
-        return {"player": player, "batting": batting, "bowling": bowling, "impact": impact, "insights": insights}
 
-    def venue_summary(self, venue_id: str) -> dict[str, Any]:
-        venue = self.store.get("venues", venue_id)
-        if not venue:
-            return {"venue": None, "metrics": {}, "insights": []}
-        matches = [m for m in self._matches() if str(m.get("venue_id")) == venue_id]
-        if not matches:
-            metrics = {
-                "total_matches": 0,
+    def _empty_head_to_head(self, team_a_id: str, team_b_id: str) -> dict[str, Any]:
+        return {
+            "team_a": {"id": team_a_id, "team_name": "Unknown team"},
+            "team_b": {"id": team_b_id, "team_name": "Unknown team"},
+            "metrics": {
+                "matches_played": 0,
+                "team_a_wins": 0,
+                "team_b_wins": 0,
+                "team_a_win_percentage": 0.0,
+                "team_b_win_percentage": 0.0,
                 "average_first_innings_score": 0.0,
-                "average_second_innings_score": 0.0,
-                "bat_first_win_percentage": 0.0,
-                "chase_win_percentage": 0.0,
-                "highest_score": 0,
-                "highest_successful_chase": 0,
-                "lowest_defended_score": 0,
-                "par_score": 0.0,
-                "safe_score": 0.0,
-            }
-            return {"venue": venue, "metrics": metrics, "insights": ["No venue history available yet."]}
-        first_scores = [m.get("first_innings_score", 0) for m in matches if m.get("first_innings_score") is not None]
-        second_scores = [m.get("second_innings_score", 0) for m in matches if m.get("second_innings_score") is not None]
-        bat_first_wins = [m for m in matches if str(m.get("winner_id")) == str(m.get("bat_first_team_id"))]
-        chase_wins = [m for m in matches if str(m.get("winner_id")) != str(m.get("bat_first_team_id"))]
-        successful_chases = [m.get("second_innings_score", 0) for m in chase_wins]
-        defended_scores = [m.get("first_innings_score", 0) for m in bat_first_wins]
-        average_first = round(sum(first_scores) / len(first_scores), 2) if first_scores else 0.0
-        metrics = {
-            "total_matches": len(matches),
-            "average_first_innings_score": average_first,
-            "average_second_innings_score": round(sum(second_scores) / len(second_scores), 2) if second_scores else 0.0,
-            "bat_first_win_percentage": round(percentage(len(bat_first_wins), len(matches)), 2),
-            "chase_win_percentage": round(percentage(len(chase_wins), len(matches)), 2),
-            "highest_score": max(first_scores) if first_scores else 0,
-            "highest_successful_chase": max(successful_chases) if successful_chases else 0,
-            "lowest_defended_score": min(defended_scores) if defended_scores else 0,
-            "par_score": round(average_first + 10, 2),
-            "safe_score": round(average_first + 20, 2),
+            },
+            "recent_matches": [],
+            "insights": ["Analytics temporarily unavailable."],
         }
-        insights = self._venue_insights_from_metrics(venue, metrics)
-        return {"venue": venue, "metrics": metrics, "insights": insights}
 
-    def toss_summary(self) -> dict[str, Any]:
-        matches = [m for m in self._matches() if m.get("toss_winner_id")]
-        toss_wins = [m for m in matches if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
-        bat_decisions = [m for m in matches if m.get("toss_decision") == "bat"]
-        bowl_decisions = [m for m in matches if m.get("toss_decision") == "bowl"]
-        bat_success = [m for m in bat_decisions if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
-        bowl_success = [m for m in bowl_decisions if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
-        overall = {
-            "toss_winner_match_win_percentage": round(percentage(len(toss_wins), len(matches)), 2) if matches else 0.0,
-            "bat_decision_success_percentage": round(percentage(len(bat_success), len(bat_decisions)), 2) if bat_decisions else 0.0,
-            "bowl_decision_success_percentage": round(percentage(len(bowl_success), len(bowl_decisions)), 2) if bowl_decisions else 0.0,
-        }
-        team_wise = []
-        for team in self._teams():
-            team_matches = [m for m in matches if str(m.get("toss_winner_id")) == team["id"]]
-            conversions = [m for m in team_matches if str(m.get("winner_id")) == team["id"]]
-            team_wise.append(
+    def _overs_total(self, overs_values: pd.Series) -> tuple[float, int]:
+        balls = sum(parse_overs_to_balls(float(overs or 0)) for overs in overs_values.fillna(0).tolist())
+        return balls_to_overs(int(balls)), int(balls)
+
+    def _matches_df(self) -> pd.DataFrame:
+        matches = self._matches()
+        return pd.DataFrame(matches) if matches else pd.DataFrame(columns=["id"])
+
+    def _stats_df(self) -> pd.DataFrame:
+        stats = self._stats()
+        return pd.DataFrame(stats) if stats else pd.DataFrame(columns=["id"])
+
+    def dashboard_summary(self, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "teams", "venues", "players", "matches", "player_match_stats")
+        matches = self._matches(context)
+        teams = self._teams(context)
+        players = self._players(context)
+        stats_rows = self._stats(context)
+        stats_df = pd.DataFrame(stats_rows) if stats_rows else pd.DataFrame(columns=["id"])
+        matches_df = pd.DataFrame(matches) if matches else pd.DataFrame(columns=["id"])
+        response = self._empty_dashboard()
+        warnings: list[str] = []
+        player_lookup: dict[str, dict[str, Any]] = {}
+
+        try:
+            total_runs = int(stats_df["runs"].sum()) if not stats_df.empty else 0
+            total_balls = int(stats_df["balls"].sum()) if not stats_df.empty else 0
+            _overs_display, total_bowler_balls = self._overs_total(stats_df["overs"]) if not stats_df.empty and "overs" in stats_df else (0.0, 0)
+            total_runs_conceded = int(stats_df["runs_conceded"].sum()) if not stats_df.empty else 0
+            total_fours = int(stats_df["fours"].sum()) if not stats_df.empty else 0
+            total_sixes = int(stats_df["sixes"].sum()) if not stats_df.empty else 0
+            total_wickets = int(stats_df["wickets"].sum()) if not stats_df.empty else 0
+            average_first_innings_score = round(matches_df["first_innings_score"].mean(), 2) if not matches_df.empty else 0.0
+            chase_wins = [m for m in matches if m.get("winner_id") and str(m.get("winner_id")) != str(m.get("bat_first_team_id"))]
+            chase_win_percentage = round(percentage(len(chase_wins), len(matches)), 2) if matches else 0.0
+            bat_first_wins = [
+                m
+                for m in matches
+                if m.get("winner_id") and m.get("bat_first_team_id") and str(m["winner_id"]) == str(m["bat_first_team_id"])
+            ]
+            bat_first_total = [m for m in matches if m.get("bat_first_team_id")]
+            bat_first_win_percentage = round(percentage(len(bat_first_wins), len(bat_first_total)), 2) if bat_first_total else 0.0
+            toss_wins = [m for m in matches if m.get("toss_winner_id")]
+            toss_conversion_wins = [m for m in matches if m.get("toss_winner_id") and m.get("winner_id") == m.get("toss_winner_id")]
+            toss_conversion_percentage = round(percentage(len(toss_conversion_wins), len(toss_wins)), 2) if toss_wins else 0.0
+            highest_score = int(matches_df["first_innings_score"].max()) if not matches_df.empty else 0
+            response.update(
                 {
-                    "team_id": team["id"],
-                    "team_name": team["team_name"],
-                    "toss_wins": len(team_matches),
-                    "toss_conversion_percentage": round(percentage(len(conversions), len(team_matches)), 2) if team_matches else 0.0,
+                    "total_matches": len(matches),
+                    "total_teams": len(teams),
+                    "total_players": len(players),
+                    "average_first_innings_score": average_first_innings_score,
+                    "total_runs": total_runs,
+                    "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
+                    "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
+                    "fours": total_fours,
+                    "sixes": total_sixes,
+                    "wickets_taken": total_wickets,
+                    "chase_win_percentage": chase_win_percentage,
+                    "bat_first_win_percentage": bat_first_win_percentage,
+                    "toss_conversion_percentage": toss_conversion_percentage,
+                    "highest_score": highest_score,
                 }
             )
-        return {
-            "overall": overall,
-            "team_wise": team_wise,
-            "insights": self._toss_insights_from_metrics(overall),
-        }
+            response["summary_points"] = [
+                f"{len(matches)} completed matches analysed across {len(teams)} teams.",
+                f"Average first innings score sits at {average_first_innings_score:.1f}.",
+                f"Toss winners converted into victories {toss_conversion_percentage:.1f}% of the time.",
+            ]
+        except Exception:
+            logger.exception("Failed to compute dashboard totals from tables: matches, player_match_stats.")
+            warnings.append("Some dashboard totals are unavailable.")
 
-    def head_to_head(self, team_a_id: str, team_b_id: str) -> dict[str, Any]:
-        team_lookup = self._team_lookup()
-        team_a = self.store.get("teams", team_a_id) or team_lookup.get(team_a_id) or {"id": team_a_id, "team_name": "Unknown team"}
-        team_b = self.store.get("teams", team_b_id) or team_lookup.get(team_b_id) or {"id": team_b_id, "team_name": "Unknown team"}
-        matches = [
-            m
-            for m in self._matches()
-            if {str(m.get("team_a_id")), str(m.get("team_b_id"))} == {team_a_id, team_b_id}
-        ]
-        team_a_wins = [m for m in matches if str(m.get("winner_id")) == team_a_id]
-        team_b_wins = [m for m in matches if str(m.get("winner_id")) == team_b_id]
-        metrics = {
-            "matches_played": len(matches),
-            "team_a_wins": len(team_a_wins),
-            "team_b_wins": len(team_b_wins),
-            "team_a_win_percentage": round(percentage(len(team_a_wins), len(matches)), 2) if matches else 0.0,
-            "team_b_win_percentage": round(percentage(len(team_b_wins), len(matches)), 2) if matches else 0.0,
-            "average_first_innings_score": round(sum(m.get("first_innings_score", 0) for m in matches) / len(matches), 2) if matches else 0.0,
-        }
-        recent_matches = sorted(matches, key=lambda item: item.get("match_date", ""), reverse=True)[:5]
-        insights = [
-            f"{team_a['team_name']} leads the matchup when their win percentage is higher than {team_b['team_name']} in this sample.",
-        ] if matches else ["No head-to-head history is available yet."]
-        return {
-            "team_a": team_a,
-            "team_b": team_b,
-            "metrics": metrics,
-            "recent_matches": recent_matches,
-            "insights": insights,
-        }
+        try:
+            player_lookup = self._player_lookup(context)
+            team_win_percentage_chart = []
+            for team in teams:
+                try:
+                    team_summary = self.team_summary(str(team.get("id")), context=context)
+                    team_win_percentage_chart.append(
+                        {"team_id": team.get("id"), "team_name": team.get("team_name"), **team_summary["metrics"]}
+                    )
+                except Exception:
+                    logger.exception("Failed to build dashboard team row for team '%s'.", team.get("id"))
+                    warnings.append(f"Team chart row unavailable for {team.get('team_name', 'unknown team')}.")
+            response["team_win_percentage_chart"] = team_win_percentage_chart
+        except Exception:
+            logger.exception("Failed to build dashboard team chart using table 'teams'.")
+            warnings.append("Team chart is unavailable.")
 
-    def _recent_form_index(self, team_id: str) -> float:
+        try:
+            venue_score_chart = []
+            for venue in self._venues(context):
+                try:
+                    venue_summary = self.venue_summary(str(venue.get("id")), context=context)
+                    venue_score_chart.append(
+                        {"venue_id": venue.get("id"), "venue_name": venue.get("venue_name"), **venue_summary["metrics"]}
+                    )
+                except Exception:
+                    logger.exception("Failed to build dashboard venue row for venue '%s'.", venue.get("id"))
+                    warnings.append(f"Venue chart row unavailable for {venue.get('venue_name', 'unknown venue')}.")
+            response["venue_score_chart"] = venue_score_chart
+        except Exception:
+            logger.exception("Failed to build dashboard venue chart using table 'venues'.")
+            warnings.append("Venue chart is unavailable.")
+
+        try:
+            top_run_scorers = []
+            top_wicket_takers = []
+            if not stats_df.empty:
+                runs_table = stats_df.groupby("player_id", as_index=False)["runs"].sum().sort_values("runs", ascending=False).head(5)
+                wickets_table = stats_df.groupby("player_id", as_index=False)["wickets"].sum().sort_values("wickets", ascending=False).head(5)
+                top_run_scorers = [
+                    {
+                        "player_id": str(row["player_id"]),
+                        "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
+                        "runs": int(row["runs"]),
+                    }
+                    for _, row in runs_table.iterrows()
+                ]
+                top_wicket_takers = [
+                    {
+                        "player_id": str(row["player_id"]),
+                        "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
+                        "wickets": int(row["wickets"]),
+                    }
+                    for _, row in wickets_table.iterrows()
+                ]
+            response["top_run_scorers"] = top_run_scorers
+            response["top_wicket_takers"] = top_wicket_takers
+        except Exception:
+            logger.exception("Failed to build top performer lists using table 'player_match_stats'.")
+            warnings.append("Top performer lists are unavailable.")
+
+        if warnings:
+            response["warnings"] = warnings
+        return response
+
+    def standings(self, context: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, Any]]:
+        context = self._context(context, "teams", "matches")
+        try:
+            matches = self._matches(context)
+            standings_rows: list[dict[str, Any]] = []
+            for team in self._teams(context):
+                team_id = str(team.get("id"))
+                team_matches = [m for m in matches if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id]
+                wins = [m for m in team_matches if str(m.get("winner_id")) == team_id]
+                losses = [m for m in team_matches if m.get("winner_id") and str(m.get("winner_id")) != team_id]
+                runs_for = 0.0
+                runs_against = 0.0
+                overs_for_balls = 0
+                overs_against_balls = 0
+                for match in team_matches:
+                    if str(match.get("bat_first_team_id")) == team_id:
+                        runs_for += float(match.get("first_innings_score") or 0)
+                        overs_for_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
+                        runs_against += float(match.get("second_innings_score") or 0)
+                        overs_against_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
+                    else:
+                        runs_for += float(match.get("second_innings_score") or 0)
+                        overs_for_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
+                        runs_against += float(match.get("first_innings_score") or 0)
+                        overs_against_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
+                run_rate_for = safe_divide(runs_for, overs_for_balls / 6, 0.0)
+                run_rate_against = safe_divide(runs_against, overs_against_balls / 6, 0.0)
+                nrr = round(run_rate_for - run_rate_against, 3)
+                standings_rows.append(
+                    {
+                        "team_id": team_id,
+                        "team_name": team.get("team_name"),
+                        "played": len(team_matches),
+                        "wins": len(wins),
+                        "losses": len(losses),
+                        "points": len(wins) * 2,
+                        "nrr": f"{nrr:.3f}",
+                    }
+                )
+            standings_rows.sort(key=lambda row: (row["points"], float(row["nrr"])), reverse=True)
+            return standings_rows
+        except Exception:
+            logger.exception("Failed to build standings using tables: teams, matches.")
+            return []
+
+    def team_summary(self, team_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "teams", "matches", "player_match_stats")
+        try:
+            team_lookup = self._team_lookup(context)
+            team = team_lookup.get(str(team_id)) or self.store.get("teams", team_id)
+            if not team:
+                return self._empty_team_summary(None)
+
+            matches = [m for m in self._matches(context) if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id]
+            team_stats = [row for row in self._stats(context) if str(row.get("team_id")) == team_id]
+            team_stats_df = pd.DataFrame(team_stats) if team_stats else pd.DataFrame(columns=["id"])
+            if not matches:
+                empty = self._empty_team_summary(team)
+                empty["insights"] = ["No matches available for this team yet."]
+                return empty
+
+            wins = [m for m in matches if str(m.get("winner_id")) == team_id]
+            losses = [m for m in matches if str(m.get("loser_id")) == team_id]
+            bat_first_matches = [m for m in matches if str(m.get("bat_first_team_id")) == team_id]
+            chase_matches = [m for m in matches if str(m.get("bat_first_team_id")) != team_id]
+            bat_first_wins = [m for m in bat_first_matches if str(m.get("winner_id")) == team_id]
+            chase_wins = [m for m in chase_matches if str(m.get("winner_id")) == team_id]
+            toss_wins = [m for m in matches if str(m.get("toss_winner_id")) == team_id]
+            wins_after_toss = [m for m in matches if str(m.get("toss_winner_id")) == team_id and str(m.get("winner_id")) == team_id]
+            scores_batting_first = [m.get("first_innings_score", 0) for m in bat_first_matches if m.get("first_innings_score") is not None]
+            scores_chasing = [m.get("second_innings_score", 0) for m in chase_matches if m.get("second_innings_score") is not None]
+            recent_matches = sorted(
+                matches,
+                key=lambda item: (int(item.get("match_number") or 0), str(item.get("match_date") or "")),
+                reverse=True,
+            )
+            total_runs = int(team_stats_df["runs"].sum()) if not team_stats_df.empty and "runs" in team_stats_df else 0
+            total_balls = int(team_stats_df["balls"].sum()) if not team_stats_df.empty and "balls" in team_stats_df else 0
+            _overs_display, total_bowler_balls = self._overs_total(team_stats_df["overs"]) if not team_stats_df.empty and "overs" in team_stats_df else (0.0, 0)
+            total_runs_conceded = int(team_stats_df["runs_conceded"].sum()) if not team_stats_df.empty and "runs_conceded" in team_stats_df else 0
+            total_fours = int(team_stats_df["fours"].sum()) if not team_stats_df.empty and "fours" in team_stats_df else 0
+            total_sixes = int(team_stats_df["sixes"].sum()) if not team_stats_df.empty and "sixes" in team_stats_df else 0
+            total_wickets = int(team_stats_df["wickets"].sum()) if not team_stats_df.empty and "wickets" in team_stats_df else 0
+            recent_form_index = self._recent_form_index(team_id, context=context)
+            batting_strength = clamp((percentage(len(bat_first_wins), len(bat_first_matches)) + percentage(len(chase_wins), len(chase_matches))) / 2)
+            bowling_strength = clamp((percentage(len(wins_after_toss), len(toss_wins)) + percentage(len(wins), len(matches))) / 2)
+
+            metrics = {
+                "matches_played": len(matches),
+                "wins": len(wins),
+                "losses": len(losses),
+                "win_percentage": round(percentage(len(wins), len(matches)), 2),
+                "bat_first_matches": len(bat_first_matches),
+                "bat_first_wins": len(bat_first_wins),
+                "bat_first_win_percentage": round(percentage(len(bat_first_wins), len(bat_first_matches)), 2),
+                "chase_matches": len(chase_matches),
+                "chase_wins": len(chase_wins),
+                "chase_win_percentage": round(percentage(len(chase_wins), len(chase_matches)), 2),
+                "toss_wins": len(toss_wins),
+                "wins_after_toss": len(wins_after_toss),
+                "toss_conversion_percentage": round(percentage(len(wins_after_toss), len(toss_wins)), 2),
+                "average_score_batting_first": round(sum(scores_batting_first) / len(scores_batting_first), 2) if scores_batting_first else 0.0,
+                "average_score_chasing": round(sum(scores_chasing) / len(scores_chasing), 2) if scores_chasing else 0.0,
+                "total_runs": total_runs,
+                "avg_strike_rate": round(percentage(total_runs, total_balls), 2) if total_balls else 0.0,
+                "avg_economy": round(total_runs_conceded / (total_bowler_balls / 6), 2) if total_bowler_balls else 0.0,
+                "fours": total_fours,
+                "sixes": total_sixes,
+                "wickets_taken": total_wickets,
+                "form_index": round(recent_form_index, 2),
+                "team_strength_score": round(
+                    team_strength_score(
+                        percentage(len(wins), len(matches)),
+                        recent_form_index,
+                        batting_strength,
+                        bowling_strength,
+                    ),
+                    2,
+                ),
+            }
+            head_to_head_summary = []
+            for opponent in self._teams(context):
+                if str(opponent.get("id")) == team_id:
+                    continue
+                try:
+                    summary = self.head_to_head(team_id, str(opponent.get("id")), context=context)
+                    if summary["metrics"]["matches_played"]:
+                        head_to_head_summary.append(summary["metrics"])
+                except Exception:
+                    logger.exception("Failed to build head-to-head row for team '%s' against '%s'.", team_id, opponent.get("id"))
+            insights = self._team_insights_from_metrics(team, metrics)
+            return {
+                "team": team,
+                "metrics": metrics,
+                "insights": insights,
+                "recent_matches": recent_matches,
+                "head_to_head_summary": head_to_head_summary[:5],
+            }
+        except Exception:
+            logger.exception("Failed to build team analytics using tables: teams, matches, player_match_stats.")
+            team = self.store.get("teams", team_id)
+            return self._empty_team_summary(team)
+
+    def player_summary(self, player_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "players", "player_match_stats")
+        try:
+            player_lookup = self._player_lookup(context)
+            player = player_lookup.get(str(player_id)) or self.store.get("players", player_id)
+            if not player:
+                return self._empty_player_summary(None)
+
+            stats = [row for row in self._stats(context) if str(row.get("player_id")) == player_id]
+            stats_df = pd.DataFrame(stats) if stats else pd.DataFrame()
+            overs_balls = 0
+            if stats_df.empty:
+                batting = {
+                    "total_runs": 0,
+                    "total_balls": 0,
+                    "batting_strike_rate": 0.0,
+                    "average_runs_per_match": 0.0,
+                    "fours": 0,
+                    "sixes": 0,
+                    "boundary_percentage": 0.0,
+                    "finishing_score": 0.0,
+                }
+                bowling = {
+                    "overs": 0.0,
+                    "wickets": 0,
+                    "economy": 0.0,
+                    "dot_ball_percentage": 0.0,
+                    "bowling_strike_impact": 0.0,
+                    "pressure_bowling_score": 0.0,
+                }
+            else:
+                total_runs = int(stats_df["runs"].sum()) if "runs" in stats_df else 0
+                total_balls = int(stats_df["balls"].sum()) if "balls" in stats_df else 0
+                total_matches = max(len(stats_df), 1)
+                fours = int(stats_df["fours"].sum()) if "fours" in stats_df else 0
+                sixes = int(stats_df["sixes"].sum()) if "sixes" in stats_df else 0
+                overs, overs_balls = self._overs_total(stats_df["overs"]) if "overs" in stats_df else (0.0, 0)
+                wickets = int(stats_df["wickets"].sum()) if "wickets" in stats_df else 0
+                dot_balls = int(stats_df["dot_balls"].sum()) if "dot_balls" in stats_df else 0
+                runs_conceded = float(stats_df["runs_conceded"].sum()) if "runs_conceded" in stats_df else 0.0
+                batting_strike_rate = round(percentage(total_runs, total_balls), 2) if total_balls else 0.0
+                batting = {
+                    "total_runs": total_runs,
+                    "total_balls": total_balls,
+                    "batting_strike_rate": round((total_runs / total_balls) * 100, 2) if total_balls else 0.0,
+                    "average_runs_per_match": round(total_runs / total_matches, 2),
+                    "fours": fours,
+                    "sixes": sixes,
+                    "boundary_percentage": round(percentage(fours + sixes, total_balls), 2) if total_balls else 0.0,
+                    "finishing_score": round(batting_impact(total_runs, batting_strike_rate, fours, sixes), 2),
+                }
+                bowling = {
+                    "overs": overs,
+                    "wickets": wickets,
+                    "economy": round(runs_conceded / overs, 2) if overs else 0.0,
+                    "dot_ball_percentage": round(percentage(dot_balls, overs_balls), 2) if overs_balls else 0.0,
+                    "bowling_strike_impact": round((wickets * 25) + (dot_balls * 1.25), 2),
+                    "pressure_bowling_score": round(bowling_impact(wickets, dot_balls, round(runs_conceded / overs, 2) if overs else 0.0), 2),
+                }
+
+            impact = {
+                "batting_impact": round(
+                    batting_impact(batting.get("total_runs", 0), batting.get("batting_strike_rate", 0.0), batting.get("fours", 0), batting.get("sixes", 0)),
+                    2,
+                ),
+                "bowling_impact": round(
+                    bowling_impact(
+                        bowling.get("wickets", 0),
+                        int((bowling.get("dot_ball_percentage", 0) / 100) * overs_balls) if overs_balls else 0,
+                        bowling.get("economy", 0.0),
+                    ),
+                    2,
+                ),
+            }
+            impact["all_rounder_index"] = round(all_rounder_index(impact["batting_impact"], impact["bowling_impact"]), 2)
+            insights = self._player_insights_from_metrics(player, batting, bowling, impact)
+            return {"player": player, "batting": batting, "bowling": bowling, "impact": impact, "insights": insights}
+        except Exception:
+            logger.exception("Failed to build player analytics using tables: players, player_match_stats.")
+            player = self.store.get("players", player_id)
+            return self._empty_player_summary(player)
+
+    def venue_summary(self, venue_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "venues", "matches")
+        try:
+            venue_lookup = self._venue_lookup(context)
+            venue = venue_lookup.get(str(venue_id)) or self.store.get("venues", venue_id)
+            if not venue:
+                return self._empty_venue_summary(None)
+
+            matches = [m for m in self._matches(context) if str(m.get("venue_id")) == venue_id]
+            if not matches:
+                metrics = {
+                    "total_matches": 0,
+                    "average_first_innings_score": 0.0,
+                    "average_second_innings_score": 0.0,
+                    "bat_first_win_percentage": 0.0,
+                    "chase_win_percentage": 0.0,
+                    "highest_score": 0,
+                    "highest_successful_chase": 0,
+                    "lowest_defended_score": 0,
+                    "par_score": 0.0,
+                    "safe_score": 0.0,
+                }
+                return {"venue": venue, "metrics": metrics, "insights": ["No venue history available yet."]}
+            first_scores = [m.get("first_innings_score", 0) for m in matches if m.get("first_innings_score") is not None]
+            second_scores = [m.get("second_innings_score", 0) for m in matches if m.get("second_innings_score") is not None]
+            bat_first_wins = [m for m in matches if str(m.get("winner_id")) == str(m.get("bat_first_team_id"))]
+            chase_wins = [m for m in matches if str(m.get("winner_id")) != str(m.get("bat_first_team_id"))]
+            successful_chases = [m.get("second_innings_score", 0) for m in chase_wins]
+            defended_scores = [m.get("first_innings_score", 0) for m in bat_first_wins]
+            average_first = round(sum(first_scores) / len(first_scores), 2) if first_scores else 0.0
+            metrics = {
+                "total_matches": len(matches),
+                "average_first_innings_score": average_first,
+                "average_second_innings_score": round(sum(second_scores) / len(second_scores), 2) if second_scores else 0.0,
+                "bat_first_win_percentage": round(percentage(len(bat_first_wins), len(matches)), 2),
+                "chase_win_percentage": round(percentage(len(chase_wins), len(matches)), 2),
+                "highest_score": max(first_scores) if first_scores else 0,
+                "highest_successful_chase": max(successful_chases) if successful_chases else 0,
+                "lowest_defended_score": min(defended_scores) if defended_scores else 0,
+                "par_score": round(average_first + 10, 2),
+                "safe_score": round(average_first + 20, 2),
+            }
+            insights = self._venue_insights_from_metrics(venue, metrics)
+            return {"venue": venue, "metrics": metrics, "insights": insights}
+        except Exception:
+            logger.exception("Failed to build venue analytics using tables: venues, matches.")
+            venue = self.store.get("venues", venue_id)
+            return self._empty_venue_summary(venue)
+
+    def toss_summary(self, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "teams", "matches")
+        try:
+            matches = [m for m in self._matches(context) if m.get("toss_winner_id")]
+            toss_wins = [m for m in matches if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
+            bat_decisions = [m for m in matches if m.get("toss_decision") == "bat"]
+            bowl_decisions = [m for m in matches if m.get("toss_decision") == "bowl"]
+            bat_success = [m for m in bat_decisions if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
+            bowl_success = [m for m in bowl_decisions if str(m.get("winner_id")) == str(m.get("toss_winner_id"))]
+            overall = {
+                "toss_winner_match_win_percentage": round(percentage(len(toss_wins), len(matches)), 2) if matches else 0.0,
+                "bat_decision_success_percentage": round(percentage(len(bat_success), len(bat_decisions)), 2) if bat_decisions else 0.0,
+                "bowl_decision_success_percentage": round(percentage(len(bowl_success), len(bowl_decisions)), 2) if bowl_decisions else 0.0,
+            }
+            team_wise = []
+            for team in self._teams(context):
+                team_id = str(team.get("id"))
+                team_matches = [m for m in matches if str(m.get("toss_winner_id")) == team_id]
+                conversions = [m for m in team_matches if str(m.get("winner_id")) == team_id]
+                team_wise.append(
+                    {
+                        "team_id": team_id,
+                        "team_name": team.get("team_name"),
+                        "toss_wins": len(team_matches),
+                        "toss_conversion_percentage": round(percentage(len(conversions), len(team_matches)), 2) if team_matches else 0.0,
+                    }
+                )
+            return {
+                "overall": overall,
+                "team_wise": team_wise,
+                "insights": self._toss_insights_from_metrics(overall),
+            }
+        except Exception:
+            logger.exception("Failed to build toss analytics using tables: teams, matches.")
+            return self._empty_toss_summary()
+
+    def head_to_head(self, team_a_id: str, team_b_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        context = self._context(context, "teams", "matches")
+        try:
+            team_lookup = self._team_lookup(context)
+            team_a = self.store.get("teams", team_a_id) or team_lookup.get(team_a_id) or {"id": team_a_id, "team_name": "Unknown team"}
+            team_b = self.store.get("teams", team_b_id) or team_lookup.get(team_b_id) or {"id": team_b_id, "team_name": "Unknown team"}
+            matches = [
+                m
+                for m in self._matches(context)
+                if {str(m.get("team_a_id")), str(m.get("team_b_id"))} == {team_a_id, team_b_id}
+            ]
+            team_a_wins = [m for m in matches if str(m.get("winner_id")) == team_a_id]
+            team_b_wins = [m for m in matches if str(m.get("winner_id")) == team_b_id]
+            metrics = {
+                "matches_played": len(matches),
+                "team_a_wins": len(team_a_wins),
+                "team_b_wins": len(team_b_wins),
+                "team_a_win_percentage": round(percentage(len(team_a_wins), len(matches)), 2) if matches else 0.0,
+                "team_b_win_percentage": round(percentage(len(team_b_wins), len(matches)), 2) if matches else 0.0,
+                "average_first_innings_score": round(sum(m.get("first_innings_score", 0) for m in matches) / len(matches), 2) if matches else 0.0,
+            }
+            recent_matches = sorted(matches, key=lambda item: item.get("match_date", ""), reverse=True)[:5]
+            insights = [
+                f"{team_a['team_name']} leads the matchup when their win percentage is higher than {team_b['team_name']} in this sample.",
+            ] if matches else ["No head-to-head history is available yet."]
+            return {
+                "team_a": team_a,
+                "team_b": team_b,
+                "metrics": metrics,
+                "recent_matches": recent_matches,
+                "insights": insights,
+            }
+        except Exception:
+            logger.exception("Failed to build head-to-head analytics using tables: teams, matches.")
+            return self._empty_head_to_head(team_a_id, team_b_id)
+
+    def _recent_form_index(self, team_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> float:
         matches = sorted(
-            [m for m in self._matches() if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id],
+            [m for m in self._matches(context) if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id],
             key=lambda item: item.get("match_date", ""),
             reverse=True,
         )[:5]

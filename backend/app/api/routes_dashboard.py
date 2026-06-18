@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter
 
 from app.services.insights_service import insights_service
@@ -7,11 +9,16 @@ from app.services.analytics_service import analytics_service
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/dashboard")
 def dashboard():
-    return analytics_service.dashboard_summary()
+    try:
+        return analytics_service.dashboard_summary()
+    except Exception:
+        logger.exception("Failed to build /analytics/dashboard; returning empty dashboard payload.")
+        return analytics_service._empty_dashboard()
 
 
 @router.get("/standings")
