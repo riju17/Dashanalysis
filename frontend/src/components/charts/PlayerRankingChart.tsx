@@ -6,9 +6,10 @@ import { GlassCard } from "@/components/ui/GlassCard";
 type Props = {
   data: Array<{ name: string; value: number }>;
   title: string;
+  fill?: string;
 };
 
-export function PlayerRankingChart({ data, title }: Props) {
+export function PlayerRankingChart({ data, title, fill = "#38BDF8" }: Props) {
   return (
     <GlassCard>
       <h3 className="mb-4 text-lg font-semibold text-white">{title}</h3>
@@ -19,7 +20,7 @@ export function PlayerRankingChart({ data, title }: Props) {
             <XAxis type="number" tick={{ fill: "#CBD5E1", fontSize: 12 }} />
             <YAxis type="category" dataKey="name" tick={{ fill: "#CBD5E1", fontSize: 12 }} width={140} />
             <Tooltip contentStyle={{ background: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-            <Bar dataKey="value" fill="#38BDF8" radius={[0, 12, 12, 0]} />
+            <Bar dataKey="value" fill={fill} radius={[0, 12, 12, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

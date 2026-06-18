@@ -170,6 +170,9 @@ class DashboardResponse(BaseModel):
   highest_score: int
   top_run_scorers: list[dict[str, Any]]
   top_wicket_takers: list[dict[str, Any]]
+  top_four_hitters: list[dict[str, Any]]
+  top_six_hitters: list[dict[str, Any]]
+  top_dot_ball_bowlers: list[dict[str, Any]]
   team_win_percentage_chart: list[dict[str, Any]]
   venue_score_chart: list[dict[str, Any]]
   summary_points: list[str]

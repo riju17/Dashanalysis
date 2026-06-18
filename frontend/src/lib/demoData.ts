@@ -103,6 +103,9 @@ export const demoDashboard: DashboardData = {
   highest_score: 0,
   top_run_scorers: [],
   top_wicket_takers: [],
+  top_four_hitters: [],
+  top_six_hitters: [],
+  top_dot_ball_bowlers: [],
   team_win_percentage_chart: demoTeams.map((team) => ({
     team_id: team.id,
     team_name: team.team_name,

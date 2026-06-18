@@ -135,6 +135,33 @@ export default function DashboardPage() {
               }))}
             />
           </div>
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            <PlayerRankingChart
+              title="Top 4s"
+              fill="#F59E0B"
+              data={data.top_four_hitters.map((player) => ({
+                name: player.player_name,
+                value: player.fours,
+              }))}
+            />
+            <PlayerRankingChart
+              title="Top 6s"
+              fill="#A855F7"
+              data={data.top_six_hitters.map((player) => ({
+                name: player.player_name,
+                value: player.sixes,
+              }))}
+            />
+            <PlayerRankingChart
+              title="Top Dot Ball Bowlers"
+              fill="#10B981"
+              data={data.top_dot_ball_bowlers.map((player) => ({
+                name: player.player_name,
+                value: player.dot_balls,
+              }))}
+            />
+          </div>
         </div>
       )}
       {!loading && !error && !data && <EmptyState title="No data yet" description="The analytics layer has no completed matches to analyse." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />}

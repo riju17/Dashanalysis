@@ -97,6 +97,9 @@ export type DashboardData = {
   highest_score: number;
   top_run_scorers: Array<{ player_id: string; player_name: string; runs: number }>;
   top_wicket_takers: Array<{ player_id: string; player_name: string; wickets: number }>;
+  top_four_hitters: Array<{ player_id: string; player_name: string; fours: number }>;
+  top_six_hitters: Array<{ player_id: string; player_name: string; sixes: number }>;
+  top_dot_ball_bowlers: Array<{ player_id: string; player_name: string; dot_balls: number }>;
   team_win_percentage_chart: Array<Record<string, number | string>>;
   venue_score_chart: Array<Record<string, number | string>>;
   summary_points: string[];

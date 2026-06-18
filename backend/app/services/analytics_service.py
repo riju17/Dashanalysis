@@ -264,9 +264,15 @@ class AnalyticsService:
         try:
             top_run_scorers = []
             top_wicket_takers = []
+            top_four_hitters = []
+            top_six_hitters = []
+            top_dot_ball_bowlers = []
             if not stats_df.empty:
                 runs_table = stats_df.groupby("player_id", as_index=False)["runs"].sum().sort_values("runs", ascending=False).head(5)
                 wickets_table = stats_df.groupby("player_id", as_index=False)["wickets"].sum().sort_values("wickets", ascending=False).head(5)
+                fours_table = stats_df.groupby("player_id", as_index=False)["fours"].sum().sort_values("fours", ascending=False).head(5)
+                sixes_table = stats_df.groupby("player_id", as_index=False)["sixes"].sum().sort_values("sixes", ascending=False).head(5)
+                dot_balls_table = stats_df.groupby("player_id", as_index=False)["dot_balls"].sum().sort_values("dot_balls", ascending=False).head(5)
                 top_run_scorers = [
                     {
                         "player_id": str(row["player_id"]),
@@ -283,8 +289,35 @@ class AnalyticsService:
                     }
                     for _, row in wickets_table.iterrows()
                 ]
+                top_four_hitters = [
+                    {
+                        "player_id": str(row["player_id"]),
+                        "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
+                        "fours": int(row["fours"]),
+                    }
+                    for _, row in fours_table.iterrows()
+                ]
+                top_six_hitters = [
+                    {
+                        "player_id": str(row["player_id"]),
+                        "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
+                        "sixes": int(row["sixes"]),
+                    }
+                    for _, row in sixes_table.iterrows()
+                ]
+                top_dot_ball_bowlers = [
+                    {
+                        "player_id": str(row["player_id"]),
+                        "player_name": player_lookup.get(str(row["player_id"]), {}).get("player_name", "Unknown"),
+                        "dot_balls": int(row["dot_balls"]),
+                    }
+                    for _, row in dot_balls_table.iterrows()
+                ]
             response["top_run_scorers"] = top_run_scorers
             response["top_wicket_takers"] = top_wicket_takers
+            response["top_four_hitters"] = top_four_hitters
+            response["top_six_hitters"] = top_six_hitters
+            response["top_dot_ball_bowlers"] = top_dot_ball_bowlers
         except Exception:
             logger.exception("Failed to build top performer lists using table 'player_match_stats'.")
             warnings.append("Top performer lists are unavailable.")
