@@ -271,7 +271,7 @@ export default function MatchDetailPage() {
                             inning.batting.map((row) => (
                               <tr key={row.id} className="border-t border-white/10">
                                 <td className="px-3 py-2 text-white">{row.player_name}</td>
-                                <td className="px-3 py-2 text-slate-300">—</td>
+                                <td className="px-3 py-2 text-slate-300">{row.dismissal || "—"}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.runs}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.balls}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.fours}</td>

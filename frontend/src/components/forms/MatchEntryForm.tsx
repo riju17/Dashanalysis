@@ -12,6 +12,7 @@ type PlayerStatRow = {
   player_id: string;
   team_id: string;
   batting_position: number;
+  dismissal: string;
   runs: number;
   balls: number;
   fours: number;

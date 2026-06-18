@@ -73,6 +73,7 @@ create table if not exists player_match_stats (
   player_id uuid references players(id),
   team_id uuid references teams(id),
   batting_position int,
+  dismissal text,
   runs int default 0,
   balls int default 0,
   fours int default 0,

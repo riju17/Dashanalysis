@@ -107,6 +107,7 @@ class PlayerMatchStatBase(BaseModel):
     player_id: UUID
     team_id: UUID
     batting_position: Optional[int] = None
+    dismissal: Optional[str] = None
     runs: int = 0
     balls: int = 0
     fours: int = 0
