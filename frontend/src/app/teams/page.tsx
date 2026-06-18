@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -101,24 +102,30 @@ export default function TeamsPage() {
                   const opponentScore = match.bat_first_team_id === selectedTeamId ? match.second_innings_score : match.first_innings_score;
 
                   return (
-                  <div key={match.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                    <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                        isWin ? "bg-emerald-400/20 text-emerald-200" : "bg-rose-400/20 text-rose-200"
-                      }`}
+                    <Link
+                      key={match.id}
+                      href={`/matches/${match.id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-cyan-300/40 hover:bg-white/10"
                     >
-                      {isWin ? "W" : "L"}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white">Match {match.match_number} • vs {opponentName}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
-                        {isWin ? "Won" : "Lost"} • {match.tournament} • {match.match_date}
+                      <span
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                          isWin ? "bg-emerald-400/20 text-emerald-200" : "bg-rose-400/20 text-rose-200"
+                        }`}
+                      >
+                        {isWin ? "W" : "L"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-white">
+                          Match {match.match_number} • vs {opponentName}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                          {isWin ? "Won" : "Lost"} • {match.tournament} • {match.match_date}
+                        </p>
+                      </div>
+                      <p className="text-right text-sm font-semibold text-white">
+                        {teamScore ?? 0}-{opponentScore ?? 0}
                       </p>
-                    </div>
-                    <p className="text-right text-sm font-semibold text-white">
-                      {teamScore ?? 0}-{opponentScore ?? 0}
-                    </p>
-                  </div>
+                    </Link>
                   );
                 })}
               </div>
