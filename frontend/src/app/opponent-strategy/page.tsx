@@ -16,11 +16,17 @@ type StrategyData = {
   best_toss_decision: string;
   suggested_target: number;
   opponent_weakness: string;
-  danger_players: Array<{
+  top_batsmen: Array<{
     player_name: string;
     runs: number;
     wickets: number;
-    all_rounder_score: number;
+    batting_impact: number;
+  }>;
+  top_bowlers: Array<{
+    player_name: string;
+    runs: number;
+    wickets: number;
+    bowling_impact: number;
   }>;
   bowling_strategy: string;
   batting_strategy: string;
@@ -141,26 +147,44 @@ export default function OpponentStrategyPage() {
                 ))}
               </div>
             </GlassCard>
-            <GlassCard>
-              <h3 className="text-lg font-semibold text-white">Danger players</h3>
-              <div className="mt-4 space-y-2">
-                {data.danger_players.map((player) => (
-                  <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <p className="text-sm font-semibold text-white">{player.player_name}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
-                      Runs {player.runs} • Wickets {player.wickets} • All-round score {player.all_rounder_score.toFixed(2)}
+            <div className="space-y-4">
+              <GlassCard>
+                <h3 className="text-lg font-semibold text-white">Top batsmen</h3>
+                <div className="mt-4 space-y-2">
+                  {data.top_batsmen.map((player) => (
+                    <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                      <p className="text-sm font-semibold text-white">{player.player_name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                        Runs {player.runs} • Wickets {player.wickets} • Batting impact {player.batting_impact.toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-lg font-semibold text-white">Top bowlers</h3>
+                <div className="mt-4 space-y-2">
+                  {data.top_bowlers.map((player) => (
+                    <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                      <p className="text-sm font-semibold text-white">{player.player_name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                        Wickets {player.wickets} • Runs {player.runs} • Bowling impact {player.bowling_impact.toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-lg font-semibold text-white">Match insights</h3>
+                <div className="mt-4 space-y-2">
+                  {data.insights.map((insight) => (
+                    <p key={insight} className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+                      {insight}
                     </p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 space-y-2">
-                {data.insights.map((insight) => (
-                  <p key={insight} className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
-                    {insight}
-                  </p>
-                ))}
-              </div>
-            </GlassCard>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
           </div>
         </div>
       )}

@@ -41,7 +41,7 @@ class InsightsService:
         venue_name = (venue.get("venue") or {}).get("venue_name", "Venue")
         suggested_decision = "bowl" if metrics["chase_win_percentage"] >= metrics["bat_first_win_percentage"] else "bat"
         suggested_target = int(venue_metrics.get("safe_score", 0) or metrics.get("average_score_batting_first", 0) + 15)
-        danger_players = self._top_opponent_danger_players(context, opponent_team_id)
+        danger_players, top_batsmen, top_bowlers = self._top_opponent_players(context, opponent_team_id)
         return {
             "head_to_head": h2h["metrics"],
             "best_toss_decision": suggested_decision,
@@ -51,6 +51,8 @@ class InsightsService:
                 if venue_metrics.get("par_score", 0) else "Opponent vulnerabilities depend on venue conditions."
             ),
             "danger_players": danger_players,
+            "top_batsmen": top_batsmen,
+            "top_bowlers": top_bowlers,
             "bowling_strategy": "Attack stumps early, then vary pace through overs 7-15 and target the weaker finisher.",
             "batting_strategy": "Preserve wickets through powerplay, then accelerate against the third/fourth bowler.",
             "insights": [
@@ -59,35 +61,60 @@ class InsightsService:
             ],
         }
 
-    def _top_opponent_danger_players(self, context: dict[str, list[dict[str, Any]]], opponent_team_id: str) -> list[dict[str, Any]]:
+    def _top_opponent_players(
+        self,
+        context: dict[str, list[dict[str, Any]]],
+        opponent_team_id: str,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
         player_rows = [player for player in context.get("players", []) if str(player.get("team_id")) == str(opponent_team_id)]
         if not player_rows:
-            return []
+            return [], [], []
 
-        danger_players: list[dict[str, Any]] = []
+        opponent_players: list[dict[str, Any]] = []
         for player in player_rows:
             summary = self.analytics.player_summary(str(player.get("id")), context=context)
             batting = summary.get("batting", {})
             bowling = summary.get("bowling", {})
             impact = summary.get("impact", {})
-            danger_players.append(
+            opponent_players.append(
                 {
                     "player_name": player.get("player_name", "Unknown"),
                     "runs": int(batting.get("total_runs", 0) or 0),
                     "wickets": int(bowling.get("wickets", 0) or 0),
+                    "batting_impact": round(float(impact.get("batting_impact", 0) or 0), 2),
+                    "bowling_impact": round(float(impact.get("bowling_impact", 0) or 0), 2),
                     "all_rounder_score": round(float(impact.get("all_rounder_index", 0) or 0), 2),
                 }
             )
 
-        danger_players.sort(
+        danger_players = sorted(
+            opponent_players,
             key=lambda row: (
                 -row["all_rounder_score"],
                 -row["runs"],
                 -row["wickets"],
                 row["player_name"],
             ),
-        )
-        return danger_players[:3]
+        )[:3]
+        top_batsmen = sorted(
+            opponent_players,
+            key=lambda row: (
+                -row["runs"],
+                -row["batting_impact"],
+                -row["wickets"],
+                row["player_name"],
+            ),
+        )[:3]
+        top_bowlers = sorted(
+            opponent_players,
+            key=lambda row: (
+                -row["wickets"],
+                -row["bowling_impact"],
+                -row["runs"],
+                row["player_name"],
+            ),
+        )[:3]
+        return danger_players, top_batsmen, top_bowlers
 
     def generate_match_report(self, match_id: str) -> dict[str, Any]:
         context = self.analytics.store.snapshot(["teams", "venues", "matches", "players", "player_match_stats"])
