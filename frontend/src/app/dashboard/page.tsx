@@ -17,9 +17,9 @@ import type { DashboardData } from "@/types/cricket";
 
 const neutralDashboardTheme = {
   primary: "#38BDF8",
-  secondary: "#F59E0B",
+  secondary: "#60A5FA",
   accent: "#A5B4FC",
-  gradient: "linear-gradient(135deg, rgba(15,23,42,0.18), rgba(56,189,248,0.12), rgba(245,158,11,0.10))",
+  gradient: "linear-gradient(135deg, rgba(15,23,42,0.18), rgba(56,189,248,0.12), rgba(96,165,250,0.10))",
   glow: "rgba(56,189,248,0.18)",
   border: "rgba(148,163,184,0.22)",
 };
@@ -90,7 +90,7 @@ export default function DashboardPage() {
                 <div
                   key={item.label}
                   className={`rounded-2xl border px-4 py-4 ${
-                    index % 2 === 0 ? "border-cyan-300/20 bg-cyan-400/10" : "border-amber-300/20 bg-amber-400/10"
+                    index % 2 === 0 ? "border-sky-300/20 bg-sky-400/10" : "border-blue-300/20 bg-blue-400/10"
                   }`}
                 >
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-300/80">{item.label}</p>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 xl:grid-cols-3">
             <PlayerRankingChart
               title="Top 4s"
-              fill="#F59E0B"
+              fill="#60A5FA"
               data={data.top_four_hitters.map((player) => ({
                 name: player.player_name,
                 value: player.fours,
@@ -147,15 +147,15 @@ export default function DashboardPage() {
             />
             <PlayerRankingChart
               title="Top 6s"
-              fill="#A855F7"
+              fill="#3B82F6"
               data={data.top_six_hitters.map((player) => ({
                 name: player.player_name,
                 value: player.sixes,
               }))}
             />
             <PlayerRankingChart
-              title="Top Dot Ball Bowlers"
-              fill="#10B981"
+              title="Most Dot Balls"
+              fill="#1D4ED8"
               data={data.top_dot_ball_bowlers.map((player) => ({
                 name: player.player_name,
                 value: player.dot_balls,

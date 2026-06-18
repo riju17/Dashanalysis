@@ -8,7 +8,7 @@ type Props = {
   chase: number;
 };
 
-const colors = ["#38BDF8", "#A855F7"];
+const colors = ["#60A5FA", "#1D4ED8"];
 
 export function BatFirstVsChaseChart({ batFirst, chase }: Props) {
   const data = [

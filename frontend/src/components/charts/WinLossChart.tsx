@@ -26,7 +26,7 @@ export function WinLossChart({ data }: Props) {
             <XAxis dataKey="team_name" tick={{ fill: "#CBD5E1", fontSize: 12 }} interval={0} angle={-25} textAnchor="end" height={60} />
             <YAxis tick={{ fill: "#CBD5E1", fontSize: 12 }} />
             <Tooltip contentStyle={{ background: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-            <Bar dataKey="win_percentage" fill="#22D3EE" radius={[12, 12, 0, 0]} />
+            <Bar dataKey="win_percentage" fill="#60A5FA" radius={[12, 12, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
