@@ -13,8 +13,16 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Loader } from "@/components/ui/Loader";
-import { getTeamTheme } from "@/config/teamThemes";
 import type { DashboardData } from "@/types/cricket";
+
+const neutralDashboardTheme = {
+  primary: "#38BDF8",
+  secondary: "#F59E0B",
+  accent: "#A5B4FC",
+  gradient: "linear-gradient(135deg, rgba(15,23,42,0.18), rgba(56,189,248,0.12), rgba(245,158,11,0.10))",
+  glow: "rgba(56,189,248,0.18)",
+  border: "rgba(148,163,184,0.22)",
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -38,7 +46,6 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  const theme = getTeamTheme("Indore Pink Panthers");
   const dashboardTotals = [
     { label: "Total Runs", value: data ? data.total_runs.toLocaleString() : "0" },
     { label: "Wickets", value: data ? data.wickets_taken.toLocaleString() : "0" },
@@ -60,14 +67,14 @@ export default function DashboardPage() {
       {!loading && !error && data && (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KPICard label="Total Matches" value={data.total_matches} icon={<Activity className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Total Teams" value={data.total_teams} icon={<Trophy className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Total Players" value={data.total_players} icon={<Users className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Average 1st Innings" value={data.average_first_innings_score.toFixed(1)} icon={<MapPin className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Chase Win %" value={`${data.chase_win_percentage.toFixed(1)}%`} icon={<TrendingUp className="h-4 w-4" />} trend="Chasing edge rising" trendDirection="up" theme={theme} />
-            <KPICard label="Bat First Win %" value={`${data.bat_first_win_percentage.toFixed(1)}%`} icon={<CircleDollarSign className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Toss Conversion %" value={`${data.toss_conversion_percentage.toFixed(1)}%`} icon={<Target className="h-4 w-4" />} theme={theme} />
-            <KPICard label="Highest Score" value={data.highest_score} icon={<Scale className="h-4 w-4" />} theme={theme} />
+            <KPICard label="Total Matches" value={data.total_matches} icon={<Activity className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Total Teams" value={data.total_teams} icon={<Trophy className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Total Players" value={data.total_players} icon={<Users className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Average 1st Innings" value={data.average_first_innings_score.toFixed(1)} icon={<MapPin className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Chase Win %" value={`${data.chase_win_percentage.toFixed(1)}%`} icon={<TrendingUp className="h-4 w-4" />} trend="Chasing edge rising" trendDirection="up" theme={neutralDashboardTheme} />
+            <KPICard label="Bat First Win %" value={`${data.bat_first_win_percentage.toFixed(1)}%`} icon={<CircleDollarSign className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Toss Conversion %" value={`${data.toss_conversion_percentage.toFixed(1)}%`} icon={<Target className="h-4 w-4" />} theme={neutralDashboardTheme} />
+            <KPICard label="Highest Score" value={data.highest_score} icon={<Scale className="h-4 w-4" />} theme={neutralDashboardTheme} />
           </div>
 
           <GlassCard className="overflow-hidden border border-cyan-300/20 bg-gradient-to-r from-slate-950 via-cyan-950/70 to-slate-950">
