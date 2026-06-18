@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
-
 from app.services.analytics_service import analytics_service
 
 
@@ -61,29 +59,35 @@ class InsightsService:
             ],
         }
 
-    def _top_opponent_danger_players(self, context: dict[str, list[dict[str, Any]]], opponent_team_id: str) -> list[str]:
-        player_rows = context.get("players", [])
-        stats_rows = [row for row in context.get("player_match_stats", []) if str(row.get("team_id")) == str(opponent_team_id)]
-        if not stats_rows:
-            return [player["player_name"] for player in player_rows if str(player.get("team_id")) == str(opponent_team_id)][:3]
+    def _top_opponent_danger_players(self, context: dict[str, list[dict[str, Any]]], opponent_team_id: str) -> list[dict[str, Any]]:
+        player_rows = [player for player in context.get("players", []) if str(player.get("team_id")) == str(opponent_team_id)]
+        if not player_rows:
+            return []
 
-        stats_df = pd.DataFrame(stats_rows)
-        if stats_df.empty or "player_id" not in stats_df or "runs" not in stats_df:
-            return [player["player_name"] for player in player_rows if str(player.get("team_id")) == str(opponent_team_id)][:3]
+        danger_players: list[dict[str, Any]] = []
+        for player in player_rows:
+            summary = self.analytics.player_summary(str(player.get("id")), context=context)
+            batting = summary.get("batting", {})
+            bowling = summary.get("bowling", {})
+            impact = summary.get("impact", {})
+            danger_players.append(
+                {
+                    "player_name": player.get("player_name", "Unknown"),
+                    "runs": int(batting.get("total_runs", 0) or 0),
+                    "wickets": int(bowling.get("wickets", 0) or 0),
+                    "all_rounder_score": round(float(impact.get("all_rounder_index", 0) or 0), 2),
+                }
+            )
 
-        player_lookup = {str(player.get("id")): player for player in player_rows}
-        run_totals = (
-            stats_df.groupby("player_id", as_index=False)["runs"]
-            .sum()
-            .sort_values(["runs", "player_id"], ascending=[False, True])
-            .head(3)
+        danger_players.sort(
+            key=lambda row: (
+                -row["all_rounder_score"],
+                -row["runs"],
+                -row["wickets"],
+                row["player_name"],
+            ),
         )
-        danger_players: list[str] = []
-        for _, row in run_totals.iterrows():
-            player = player_lookup.get(str(row["player_id"]))
-            player_name = player.get("player_name", "Unknown") if player else "Unknown"
-            danger_players.append(f"{player_name} - {int(row['runs'])} runs")
-        return danger_players
+        return danger_players[:3]
 
     def generate_match_report(self, match_id: str) -> dict[str, Any]:
         context = self.analytics.store.snapshot(["teams", "venues", "matches", "players", "player_match_stats"])

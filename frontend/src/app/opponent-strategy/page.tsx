@@ -16,7 +16,12 @@ type StrategyData = {
   best_toss_decision: string;
   suggested_target: number;
   opponent_weakness: string;
-  danger_players: string[];
+  danger_players: Array<{
+    player_name: string;
+    runs: number;
+    wickets: number;
+    all_rounder_score: number;
+  }>;
   bowling_strategy: string;
   batting_strategy: string;
   insights: string[];
@@ -140,9 +145,12 @@ export default function OpponentStrategyPage() {
               <h3 className="text-lg font-semibold text-white">Danger players</h3>
               <div className="mt-4 space-y-2">
                 {data.danger_players.map((player) => (
-                  <p key={player} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                    {player}
-                  </p>
+                  <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <p className="text-sm font-semibold text-white">{player.player_name}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                      Runs {player.runs} • Wickets {player.wickets} • All-round score {player.all_rounder_score.toFixed(2)}
+                    </p>
+                  </div>
                 ))}
               </div>
               <div className="mt-4 space-y-2">
