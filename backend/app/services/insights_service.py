@@ -78,6 +78,7 @@ class InsightsService:
             impact = summary.get("impact", {})
             opponent_players.append(
                 {
+                    "player_id": str(player.get("id")),
                     "player_name": player.get("player_name", "Unknown"),
                     "runs": int(batting.get("total_runs", 0) or 0),
                     "wickets": int(bowling.get("wickets", 0) or 0),

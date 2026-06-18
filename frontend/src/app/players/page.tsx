@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -12,11 +13,13 @@ import { PlayerRankingChart } from "@/components/charts/PlayerRankingChart";
 import type { DashboardData, Player, PlayerAnalytics, Team } from "@/types/cricket";
 
 export default function PlayersPage() {
+  const searchParams = useSearchParams();
+  const requestedPlayerId = searchParams.get("playerId") || "";
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [selectedPlayerId, setSelectedPlayerId] = useState(requestedPlayerId);
   const [playerAnalytics, setPlayerAnalytics] = useState<PlayerAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerLoading, setPlayerLoading] = useState(false);
@@ -98,6 +101,13 @@ export default function PlayersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (requestedPlayerId && requestedPlayerId !== selectedPlayerId) {
+      setSelectedPlayerId(requestedPlayerId);
+      void loadPlayerAnalytics(requestedPlayerId);
+    }
+  }, [requestedPlayerId]);
 
   const runChart = dashboard?.top_run_scorers.map((player) => ({ name: player.player_name, value: player.runs })) || [];
   const wicketChart = dashboard?.top_wicket_takers.map((player) => ({ name: player.player_name, value: player.wickets })) || [];

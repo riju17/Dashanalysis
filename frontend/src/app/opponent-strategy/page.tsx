@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -17,12 +18,14 @@ type StrategyData = {
   suggested_target: number;
   opponent_weakness: string;
   top_batsmen: Array<{
+    player_id: string;
     player_name: string;
     runs: number;
     wickets: number;
     batting_impact: number;
   }>;
   top_bowlers: Array<{
+    player_id: string;
     player_name: string;
     runs: number;
     wickets: number;
@@ -152,12 +155,16 @@ export default function OpponentStrategyPage() {
                 <h3 className="text-lg font-semibold text-white">Top batsmen</h3>
                 <div className="mt-4 space-y-2">
                   {data.top_batsmen.map((player) => (
-                    <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <Link
+                      key={player.player_id}
+                      href={`/players?playerId=${player.player_id}`}
+                      className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-white/10"
+                    >
                       <p className="text-sm font-semibold text-white">{player.player_name}</p>
                       <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
                         Runs {player.runs} • Wickets {player.wickets} • Batting impact {player.batting_impact.toFixed(2)}
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </GlassCard>
@@ -165,12 +172,16 @@ export default function OpponentStrategyPage() {
                 <h3 className="text-lg font-semibold text-white">Top bowlers</h3>
                 <div className="mt-4 space-y-2">
                   {data.top_bowlers.map((player) => (
-                    <div key={player.player_name} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <Link
+                      key={player.player_id}
+                      href={`/players?playerId=${player.player_id}`}
+                      className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-white/10"
+                    >
                       <p className="text-sm font-semibold text-white">{player.player_name}</p>
                       <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
                         Wickets {player.wickets} • Runs {player.runs} • Bowling impact {player.bowling_impact.toFixed(2)}
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </GlassCard>
