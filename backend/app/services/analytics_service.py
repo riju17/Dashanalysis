@@ -799,6 +799,7 @@ class AnalyticsService:
                 }
 
         filtered_rows: list[dict[str, Any]] = []
+        included_match_ids: set[str] = set()
         for stat_row in self._stats(context):
             player = player_lookup.get(str(stat_row.get("player_id")))
             if not player:
@@ -821,6 +822,7 @@ class AnalyticsService:
                 continue
             if mode == "bowling" and not _has_bowling_contribution(stat_row):
                 continue
+            included_match_ids.add(str(match.get("id")))
 
             team = team_lookup.get(str(player.get("team_id"))) or {"id": player.get("team_id"), "team_name": "Unknown team"}
             venue = venue_lookup.get(str(match.get("venue_id"))) or {"venue_name": "Unknown venue"}
@@ -1007,6 +1009,8 @@ class AnalyticsService:
 
         team_totals = _team_total_rows(report_rows, mode, team_lookup, selected_team_ids or None)
         overall_total = _performance_total_row(report_rows, mode, "Overall Total")
+        if included_match_ids:
+            overall_total["matches_played"] = len(included_match_ids)
 
         if include_venue and selected_venue:
             venue_name = selected_venue.get("venue_name", "Selected venue")

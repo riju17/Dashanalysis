@@ -272,8 +272,10 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(len(report["team_totals"]), 1)
         self.assertEqual(report["team_totals"][0]["team_name"], "Alpha")
         self.assertEqual(report["team_totals"][0]["players_count"], 1)
+        self.assertEqual(report["team_totals"][0]["matches_played"], 2)
         self.assertEqual(report["team_totals"][0]["overs_balls"], 42)
         self.assertEqual(report["overall_total"]["team_name"], "Overall Total")
+        self.assertEqual(report["overall_total"]["matches_played"], 2)
         self.assertEqual(report["overall_total"]["wickets"], 3)
 
         all_bowlers_report = analytics_service.player_performance_report(
