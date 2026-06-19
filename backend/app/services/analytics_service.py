@@ -536,6 +536,7 @@ class AnalyticsService:
         try:
             matches = self._matches(context)
             standings_rows: list[dict[str, Any]] = []
+
             for team in self._teams(context):
                 team_id = str(team.get("id"))
                 team_matches = [m for m in matches if str(m.get("team_a_id")) == team_id or str(m.get("team_b_id")) == team_id]
@@ -556,9 +557,9 @@ class AnalyticsService:
                         overs_for_balls += parse_overs_to_balls(float(match.get("second_innings_overs") or 0))
                         runs_against += float(match.get("first_innings_score") or 0)
                         overs_against_balls += parse_overs_to_balls(float(match.get("first_innings_overs") or 0))
-                run_rate_for = safe_divide(runs_for, overs_for_balls / 6, 0.0)
-                run_rate_against = safe_divide(runs_against, overs_against_balls / 6, 0.0)
-                nrr = round(run_rate_for - run_rate_against, 3)
+                run_rate_for = safe_divide(runs_for * 6, overs_for_balls, 0.0)
+                run_rate_against = safe_divide(runs_against * 6, overs_against_balls, 0.0)
+                nrr = round(run_rate_for - run_rate_against, 4)
                 standings_rows.append(
                     {
                         "team_id": team_id,
@@ -567,7 +568,7 @@ class AnalyticsService:
                         "wins": len(wins),
                         "losses": len(losses),
                         "points": len(wins) * 2,
-                        "nrr": f"{nrr:.3f}",
+                        "nrr": f"{nrr:.4f}",
                     }
                 )
             standings_rows.sort(key=lambda row: (row["points"], float(row["nrr"])), reverse=True)

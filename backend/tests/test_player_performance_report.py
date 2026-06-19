@@ -749,6 +749,100 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertTrue(all(row["best_match"]["venue_name"] == "Holkar Stadium" for row in report["rows"]))
         self.assertNotIn("No Batting Chance", {row["player_name"] for row in report["rows"]})
 
+    def test_standings_nrr_uses_ball_based_run_rates(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "match-1",
+                "match_date": "2026-06-10",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 15,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+                "bat_first_team_id": alpha["id"],
+                "bowl_first_team_id": beta["id"],
+                "first_innings_score": 200,
+                "first_innings_wickets": 5,
+                "first_innings_overs": 20.0,
+                "second_innings_score": 150,
+                "second_innings_wickets": 8,
+                "second_innings_overs": 20.0,
+                "winner_id": alpha["id"],
+                "loser_id": beta["id"],
+                "result_type": "runs",
+                "margin_runs": 50,
+                "margin_wickets": None,
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "match-2",
+                "match_date": "2026-06-11",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 16,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+                "bat_first_team_id": beta["id"],
+                "bowl_first_team_id": alpha["id"],
+                "first_innings_score": 180,
+                "first_innings_wickets": 7,
+                "first_innings_overs": 20.0,
+                "second_innings_score": 181,
+                "second_innings_wickets": 6,
+                "second_innings_overs": 19.3,
+                "winner_id": alpha["id"],
+                "loser_id": beta["id"],
+                "result_type": "wickets",
+                "margin_runs": None,
+                "margin_wickets": 4,
+            },
+        )
+
+        standings = analytics_service.standings()
+
+        self.assertEqual(len(standings), 2)
+        self.assertEqual(standings[0]["team_name"], "Alpha")
+        self.assertEqual(standings[0]["played"], 2)
+        self.assertEqual(standings[0]["points"], 4)
+        self.assertEqual(standings[0]["nrr"], "1.3956")
+        self.assertEqual(standings[1]["team_name"], "Beta")
+        self.assertEqual(standings[1]["nrr"], "-1.3956")
+
 
 if __name__ == "__main__":
     unittest.main()
