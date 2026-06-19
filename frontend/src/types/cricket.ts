@@ -248,6 +248,7 @@ export type ParsedMatchImport = {
 
 export type MatchImportRecord = {
   id: string;
+  match_id?: string | null;
   import_type: string;
   raw_text: string;
   parsed_json: ParsedMatchImport;

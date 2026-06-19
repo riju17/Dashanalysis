@@ -142,6 +142,7 @@ export const api = {
     });
   },
   getImport: (importId: string) => request<MatchImportRecord>(`/imports/${importId}`),
+  getImportForMatch: (matchId: string) => request<MatchImportRecord>(`/imports/match/${matchId}`),
   confirmImport: async (payload: ImportConfirmPayload) =>
     request<ImportConfirmResult>(
       "/imports/confirm",

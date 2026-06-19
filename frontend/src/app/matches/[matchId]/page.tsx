@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { WinProbabilityCard } from "@/components/cards/WinProbabilityCard";
 import { getTeamTheme } from "@/config/teamThemes";
-import type { MatchPlayerStatRecord, MatchRecord, Player, ReportRecord, Team, Venue } from "@/types/cricket";
+import type { MatchImportRecord, MatchPlayerStatRecord, MatchRecord, Player, ReportRecord, Team, Venue } from "@/types/cricket";
 
 type MatchSectionRow = MatchPlayerStatRecord & {
   player_name: string;
@@ -29,6 +29,7 @@ export default function MatchDetailPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [reports, setReports] = useState<ReportRecord[]>([]);
+  const [matchImport, setMatchImport] = useState<MatchImportRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
@@ -39,13 +40,14 @@ export default function MatchDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [matchData, statRows, teamRows, playerRows, venueRows, reportRows] = await Promise.all([
+      const [matchData, statRows, teamRows, playerRows, venueRows, reportRows, importRecord] = await Promise.all([
         api.getMatch(matchId),
         api.getMatchPlayerStats(matchId),
         api.getTeams(),
         api.getPlayers(),
         api.getVenues(),
         api.getReports(),
+        api.getImportForMatch(matchId).catch(() => null),
       ]);
       setMatch(matchData);
       setStats(statRows);
@@ -53,6 +55,7 @@ export default function MatchDetailPage() {
       setPlayers(playerRows);
       setVenues(venueRows);
       setReports(reportRows);
+      setMatchImport(importRecord);
     } catch {
       setError("Could not load match details.");
     } finally {
@@ -68,6 +71,28 @@ export default function MatchDetailPage() {
   const playerById = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
   const venueById = useMemo(() => new Map(venues.map((venue) => [venue.id, venue])), [venues]);
   const reportForMatch = useMemo(() => reports.find((report) => report.match_id === matchId), [reports, matchId]);
+  const dismissalByPlayerId = useMemo(() => {
+    const lookup = new Map<string, string>();
+    if (!matchImport?.parsed_json?.innings?.length || !players.length || !teams.length) return lookup;
+
+    const teamNameToId = new Map(teams.map((team) => [team.team_name.trim().toLowerCase(), team.id]));
+    const playerNameToId = new Map(players.map((player) => [`${player.team_id}:${player.player_name.trim().toLowerCase()}`, player.id]));
+
+    matchImport.parsed_json.innings.forEach((inning) => {
+      const teamId = teamNameToId.get(inning.team_name.trim().toLowerCase());
+      if (!teamId) return;
+      inning.batting.forEach((battingRow) => {
+        const dismissal = battingRow.dismissal?.trim();
+        if (!dismissal) return;
+        const playerId = playerNameToId.get(`${teamId}:${battingRow.player_name.trim().toLowerCase()}`);
+        if (playerId && !lookup.has(playerId)) {
+          lookup.set(playerId, dismissal);
+        }
+      });
+    });
+
+    return lookup;
+  }, [matchImport, players, teams]);
 
   const teamA = match ? teamById.get(match.team_a_id) : undefined;
   const teamB = match ? teamById.get(match.team_b_id) : undefined;
@@ -271,7 +296,7 @@ export default function MatchDetailPage() {
                             inning.batting.map((row) => (
                               <tr key={row.id} className="border-t border-white/10">
                                 <td className="px-3 py-2 text-white">{row.player_name}</td>
-                                <td className="px-3 py-2 text-slate-300">{row.dismissal || "—"}</td>
+                                <td className="px-3 py-2 text-slate-300">{row.dismissal || dismissalByPlayerId.get(row.player_id) || "—"}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.runs}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.balls}</td>
                                 <td className="px-3 py-2 text-slate-300">{row.fours}</td>
@@ -368,7 +393,7 @@ export default function MatchDetailPage() {
                         </div>
                         <p className="mt-2">
                           Batting: {row.runs} runs off {row.balls} balls, {row.fours}x4, {row.sixes}x6, SR {formatNumber(row.strike_rate)}
-                          {" "}• Dismissal: {row.dismissal || "—"}
+                          {" "}• Dismissal: {row.dismissal || dismissalByPlayerId.get(row.player_id) || "—"}
                         </p>
                         <p>
                           Bowling: {row.overs} ov, {row.runs_conceded} runs, {row.wickets} wickets, econ {formatNumber(row.economy)}

@@ -35,6 +35,10 @@ def _normalize_name(value: str) -> str:
     return " ".join((value or "").strip().lower().split())
 
 
+def _normalized_player_key(team_id: str, player_name: str) -> tuple[str, str]:
+    return str(team_id), _normalize_name(player_name)
+
+
 class ImportService:
     async def import_from_screenshots(self, files: list[UploadFile]) -> dict[str, Any]:
         if not files:
@@ -67,6 +71,30 @@ class ImportService:
         if not record:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Import session not found")
         return record
+
+    def get_import_for_match(self, match_id: str):
+        match = store.get("matches", match_id)
+        if not match:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
+
+        exact_match = next((record for record in store.list("match_imports") if str(record.get("match_id")) == str(match_id)), None)
+        if exact_match:
+            return exact_match
+
+        match_number = int(match.get("match_number", 0) or 0)
+        if match_number:
+            fallback_match = next(
+                (
+                    record
+                    for record in store.list("match_imports")
+                    if int((record.get("parsed_json") or {}).get("match_details", {}).get("match_number", 0) or 0) == match_number
+                ),
+                None,
+            )
+            if fallback_match:
+                return fallback_match
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Import session not found for match")
 
     def confirm_import(self, import_id: str, parsed_json: dict[str, Any]) -> dict[str, Any]:
         record = self.get_import(import_id)
@@ -142,6 +170,7 @@ class ImportService:
             "match_imports",
             record["id"],
             {
+                "match_id": match["id"],
                 "import_type": record.get("import_type"),
                 "raw_text": record.get("raw_text", ""),
                 "parsed_json": parsed_json,
@@ -156,6 +185,85 @@ class ImportService:
             "match": match,
             "report": report,
             "warnings": parsed_json.get("parser_warnings", []),
+        }
+
+    def backfill_dismissals(self, match_id: str | None = None) -> dict[str, Any]:
+        imports = store.list("match_imports")
+        matches = store.list("matches")
+        target_match_number = None
+        if match_id:
+            target_match = store.get("matches", match_id)
+            if not target_match:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
+            matches = [target_match]
+            target_match_number = int(target_match.get("match_number", 0) or 0)
+
+        match_map = {str(match["id"]): match for match in matches}
+        if match_id:
+            match_map = {str(match_id): match_map[str(match_id)]}
+
+        player_names = {
+            str(player["id"]): player.get("player_name", "")
+            for player in store.list("players")
+        }
+        team_names = {
+            str(team["id"]): team.get("team_name", "")
+            for team in store.list("teams")
+        }
+
+        processed_imports = 0
+        matched_imports = 0
+        updated_rows = 0
+
+        for import_record in imports:
+            parsed_json = import_record.get("parsed_json") or {}
+            import_match_id = str(import_record.get("match_id") or "")
+            import_match_number = parsed_json.get("match_details", {}).get("match_number")
+
+            matched_match = None
+            if match_id:
+                if import_match_id and import_match_id != str(match_id):
+                    continue
+                if target_match_number is not None and import_match_number is not None:
+                    if int(import_match_number) != target_match_number:
+                        continue
+                matched_match = match_map.get(str(match_id))
+            elif import_match_id and import_match_id in match_map:
+                matched_match = match_map[import_match_id]
+            else:
+                matched_match = next(
+                    (
+                        match
+                        for match in match_map.values()
+                        if import_match_number is not None and int(match.get("match_number", 0) or 0) == int(import_match_number)
+                    ),
+                    None,
+                )
+
+            if not matched_match:
+                continue
+
+            processed_imports += 1
+            dismissal_lookup = self._dismissal_lookup(parsed_json, matched_match, team_names)
+            if not dismissal_lookup:
+                continue
+
+            matched_imports += 1
+            for stat_row in store.filter("player_match_stats", match_id=str(matched_match["id"])):
+                if (stat_row.get("dismissal") or "").strip():
+                    continue
+                player_name = player_names.get(str(stat_row.get("player_id")), "")
+                key = _normalized_player_key(stat_row.get("team_id", ""), player_name)
+                dismissal = dismissal_lookup.get(key)
+                if not dismissal:
+                    continue
+                store.update("player_match_stats", stat_row["id"], {"dismissal": dismissal})
+                updated_rows += 1
+
+        return {
+            "processed_imports": processed_imports,
+            "matched_imports": matched_imports,
+            "updated_rows": updated_rows,
         }
 
     def _create_import_session(self, import_type: str, raw_text: str, warnings: list[str], confidence_scores: list[float]) -> dict[str, Any]:
@@ -327,6 +435,29 @@ class ImportService:
                 )
 
         return list(combined_rows.values())
+
+    def _dismissal_lookup(
+        self,
+        parsed_json: dict[str, Any],
+        match: dict[str, Any],
+        team_names: dict[str, str],
+    ) -> dict[tuple[str, str], str]:
+        match_team_name_to_id = {
+            _normalize_name(team_names.get(str(match.get("team_a_id")), "")): str(match.get("team_a_id")),
+            _normalize_name(team_names.get(str(match.get("team_b_id")), "")): str(match.get("team_b_id")),
+        }
+        lookup: dict[tuple[str, str], str] = {}
+        for innings_row in parsed_json.get("innings", []):
+            team_id = match_team_name_to_id.get(_normalize_name(innings_row.get("team_name", "")))
+            if not team_id:
+                continue
+            for batting_row in innings_row.get("batting", []):
+                dismissal = (batting_row.get("dismissal") or "").strip()
+                if not dismissal:
+                    continue
+                key = _normalized_player_key(team_id, batting_row.get("player_name", ""))
+                lookup[key] = dismissal
+        return lookup
 
     def _create_or_find_team(self, team_name: str) -> dict[str, Any]:
         normalized = _normalize_name(team_name)

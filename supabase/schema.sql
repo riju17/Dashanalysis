@@ -101,6 +101,7 @@ create table if not exists reports (
 
 create table if not exists match_imports (
   id uuid primary key default gen_random_uuid(),
+  match_id uuid references matches(id) on delete set null,
   import_type text,
   raw_text text,
   parsed_json jsonb,

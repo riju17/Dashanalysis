@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.deps import require_role
-from app.models.schemas import ImportConfirmResponse, MatchImportResponse
+from app.models.schemas import BackfillDismissalsRequest, ImportConfirmResponse, MatchImportResponse
 from app.services.import_service import import_service
 
 
@@ -61,6 +61,16 @@ async def confirm_import(request: Request, x_user_role: str = Depends(require_ro
     if not import_id or not parsed_json:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="import_id and parsed_json are required")
     return import_service.confirm_import(str(import_id), parsed_json)
+
+
+@router.post("/backfill-dismissals")
+def backfill_dismissals(backfill_request: BackfillDismissalsRequest, x_user_role: str = Depends(require_role)):
+    return import_service.backfill_dismissals(str(backfill_request.match_id) if backfill_request.match_id else None)
+
+
+@router.get("/match/{match_id}", response_model=MatchImportResponse)
+def get_import_for_match(match_id: str):
+    return import_service.get_import_for_match(match_id)
 
 
 @router.get("/{import_id}", response_model=MatchImportResponse)

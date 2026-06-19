@@ -315,6 +315,7 @@ class ParsedMatchImport(BaseModel):
 
 class MatchImportResponse(BaseModel):
     id: UUID
+    match_id: Optional[UUID] = None
     import_type: str
     raw_text: str
     parsed_json: dict[str, Any]
@@ -330,6 +331,10 @@ class ImportUrlRequest(BaseModel):
 class ImportConfirmRequest(BaseModel):
     import_id: UUID
     parsed_json: dict[str, Any]
+
+
+class BackfillDismissalsRequest(BaseModel):
+    match_id: Optional[UUID] = None
 
 
 class ImportConfirmResponse(BaseModel):
