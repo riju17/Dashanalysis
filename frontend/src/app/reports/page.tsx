@@ -139,11 +139,14 @@ export default function ReportsPage() {
     const exactVenueMatchCount = reportVenueId
       ? matches.filter((match) => match.venue_id === reportVenueId).length
       : null;
+    const rowMatchIds = new Set(
+      performanceReport.rows.flatMap((row) => row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? []),
+    );
+    const rowMatchCount = rowMatchIds.size;
+    const backendOverallMatchCount = performanceReport.overall_total?.matches_played ?? null;
     const exactReportMatchCount = reportTeamIds.length
-      ? new Set(
-          performanceReport.rows.flatMap((row) => row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? []),
-        ).size
-      : exactVenueMatchCount;
+      ? rowMatchCount || backendOverallMatchCount
+      : exactVenueMatchCount || backendOverallMatchCount;
 
     const collectMatchIds = (row: PlayerPerformanceRow) => {
       const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
