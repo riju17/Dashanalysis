@@ -1018,7 +1018,9 @@ class AnalyticsService:
 
         team_totals = _team_total_rows(report_rows, mode, team_lookup, selected_team_ids or None)
         overall_total = _performance_total_row(report_rows, mode, "Overall Total")
-        if include_venue and venue_match_count:
+        if selected_team_ids:
+            overall_total["matches_played"] = len(included_match_ids)
+        elif include_venue and venue_match_count:
             overall_total["matches_played"] = venue_match_count
         elif included_match_ids:
             overall_total["matches_played"] = len(included_match_ids)

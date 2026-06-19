@@ -353,6 +353,19 @@ class PlayerPerformanceReportTests(unittest.TestCase):
             },
         )
         store.insert(
+            "matches",
+            {
+                "id": "match-2",
+                "match_date": "2026-06-11",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 16,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+            },
+        )
+        store.insert(
             "player_match_stats",
             {
                 "id": "stat-1",
@@ -365,6 +378,29 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "wickets": 2,
                 "dot_balls": 11,
                 "economy": 6.0,
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-2",
+                "match_id": "match-2",
+                "player_id": beta_bowler["id"],
+                "team_id": beta["id"],
+                "overs": 4.0,
+                "maidens": 0,
+                "runs_conceded": 22,
+                "wickets": 2,
+                "dot_balls": 9,
+                "economy": 5.5,
                 "runs": 0,
                 "balls": 0,
                 "fours": 0,

@@ -135,9 +135,15 @@ export default function ReportsPage() {
     const matchIdsByTeam = new Map<string, Set<string>>();
     const oversBallsByTeam = new Map<string, number>();
     const reportVenueId = performanceReport.filters.use_venue_filter ? performanceReport.filters.venue_id ?? null : null;
+    const reportTeamIds = performanceReport.filters.team_ids ?? [];
     const exactVenueMatchCount = reportVenueId
       ? matches.filter((match) => match.venue_id === reportVenueId).length
       : null;
+    const exactReportMatchCount = reportTeamIds.length
+      ? new Set(
+          performanceReport.rows.flatMap((row) => row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? []),
+        ).size
+      : exactVenueMatchCount;
 
     const collectMatchIds = (row: PlayerPerformanceRow) => {
       const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
@@ -192,7 +198,7 @@ export default function ReportsPage() {
       overall_total: performanceReport.overall_total
         ? {
             ...performanceReport.overall_total,
-            matches_played: exactVenueMatchCount ?? performanceReport.overall_total.matches_played,
+            matches_played: exactReportMatchCount ?? performanceReport.overall_total.matches_played,
             ...(performanceReport.filters.mode === "bowling"
               ? (() => {
                   const totalBalls = (performanceReport.rows ?? []).reduce(
