@@ -744,6 +744,14 @@ export default function ReportsPage() {
                               <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Wkts</p>
                               <p className="mt-1 text-lg font-semibold text-white">{performanceOverallTotal.wickets}</p>
                             </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Runs given</p>
+                              <p className="mt-1 text-lg font-semibold text-white">{performanceOverallTotal.runs_conceded}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Economy</p>
+                              <p className="mt-1 text-lg font-semibold text-white">{performanceOverallTotal.economy.toFixed(2)}</p>
+                            </div>
                           </>
                         ) : (
                           <>
