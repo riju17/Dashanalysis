@@ -368,8 +368,7 @@ export default function MatchDetailPage() {
                         </div>
                         <p className="mt-2">
                           Batting: {row.runs} runs off {row.balls} balls, {row.fours}x4, {row.sixes}x6, SR {formatNumber(row.strike_rate)}
-                          {" "}
-                          • Dismissal text not stored
+                          {" "}• Dismissal: {row.dismissal || "—"}
                         </p>
                         <p>
                           Bowling: {row.overs} ov, {row.runs_conceded} runs, {row.wickets} wickets, econ {formatNumber(row.economy)}
