@@ -24,48 +24,32 @@ import type {
 
 const API_BASE_PATH = "/api/backend";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  try {
-    const headers = new Headers(init?.headers || {});
-    const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-    if (!isFormData && !headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json");
-    }
-    const response = await fetch(`${API_BASE_PATH}${path}`, {
-      cache: "no-store",
-      ...init,
-      headers,
-    });
-    if (!response.ok) {
-      let errorMessage = `Request failed with status ${response.status}.`;
-      try {
-        const payload = await response.json();
-        errorMessage = payload?.detail || payload?.message || errorMessage;
-      } catch {
-        const text = await response.text();
-        if (text) {
-          errorMessage = text;
-        }
-      }
-      throw new Error(errorMessage);
-    }
-    const payload = await response.json();
-    return payload.data ?? payload;
-  } catch (error) {
-    throw error;
-  }
+function getDirectApiBaseUrl() {
+  return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 }
 
-async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers || {});
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   if (!isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`${API_BASE_PATH}${path}`, {
+  return headers;
+}
+
+function getFallbackTargets(path: string) {
+  const targets = [`${API_BASE_PATH}${path}`];
+  const directApiBaseUrl = getDirectApiBaseUrl();
+  if (directApiBaseUrl) {
+    targets.push(`${directApiBaseUrl}${path}`);
+  }
+  return targets;
+}
+
+async function requestOnce<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
     cache: "no-store",
     ...init,
-    headers,
   });
   if (!response.ok) {
     let errorMessage = `Request failed with status ${response.status}.`;
@@ -80,7 +64,56 @@ async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
     }
     throw new Error(errorMessage);
   }
-  return response.blob();
+  const payload = await response.json();
+  return payload.data ?? payload;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = buildHeaders(init);
+  let lastError: unknown = null;
+
+  for (const url of getFallbackTargets(path)) {
+    try {
+      return await requestOnce<T>(url, { ...init, headers });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed.");
+}
+
+async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+  const headers = buildHeaders(init);
+  let lastError: unknown = null;
+
+  for (const url of getFallbackTargets(path)) {
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        ...init,
+        headers,
+      });
+      if (!response.ok) {
+        let errorMessage = `Request failed with status ${response.status}.`;
+        try {
+          const payload = await response.json();
+          errorMessage = payload?.detail || payload?.message || errorMessage;
+        } catch {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+      return response.blob();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed.");
 }
 
 export const api = {
