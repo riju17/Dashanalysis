@@ -80,6 +80,16 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "bowling_style": "Left-arm orthodox spin",
             },
         )
+        non_bowler = store.insert(
+            "players",
+            {
+                "player_name": "Did Not Bowl",
+                "team_id": beta["id"],
+                "role": "Batter",
+                "batting_style": "Left-hand bat",
+                "bowling_style": "Right-arm fast",
+            },
+        )
         store.insert(
             "matches",
             {
@@ -211,6 +221,29 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "stumpings": 0,
             },
         )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-5",
+                "match_id": "match-1",
+                "player_id": non_bowler["id"],
+                "team_id": beta["id"],
+                "overs": 0.0,
+                "maidens": 0,
+                "runs_conceded": 0,
+                "wickets": 0,
+                "dot_balls": 0,
+                "economy": 0.0,
+                "runs": 14,
+                "balls": 12,
+                "fours": 2,
+                "sixes": 0,
+                "strike_rate": 116.67,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
 
         report = analytics_service.player_performance_report(
             mode="bowling",
@@ -251,6 +284,7 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         )
         self.assertEqual(len(all_bowlers_report["rows"]), 2)
         self.assertEqual({row["player_name"] for row in all_bowlers_report["rows"]}, {"Fast Bowler", "Spinner"})
+        self.assertNotIn("Did Not Bowl", {row["player_name"] for row in all_bowlers_report["rows"]})
 
     def test_bowling_report_can_filter_selected_teams(self):
         alpha = store.insert(
@@ -430,6 +464,16 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "bowling_style": "Left-arm orthodox spin",
             },
         )
+        did_not_bat = store.insert(
+            "players",
+            {
+                "player_name": "No Batting Chance",
+                "team_id": beta["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm medium",
+            },
+        )
         store.insert(
             "matches",
             {
@@ -502,6 +546,29 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "stumpings": 0,
             },
         )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "bat-stat-3",
+                "match_id": "bat-match-1",
+                "player_id": did_not_bat["id"],
+                "team_id": beta["id"],
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "overs": 2.0,
+                "maidens": 0,
+                "runs_conceded": 12,
+                "wickets": 1,
+                "dot_balls": 4,
+                "economy": 6.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
 
         report = analytics_service.player_performance_report(
             mode="batting",
@@ -515,6 +582,7 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(len(report["rows"]), 2)
         self.assertEqual({row["player_name"] for row in report["rows"]}, {"Top Order", "Left Hander"})
         self.assertTrue(all(row["best_match"]["venue_name"] == "Holkar Stadium" for row in report["rows"]))
+        self.assertNotIn("No Batting Chance", {row["player_name"] for row in report["rows"]})
 
 
 if __name__ == "__main__":

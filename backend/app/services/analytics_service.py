@@ -117,6 +117,22 @@ def _unique_string_ids(values: list[Any] | None) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values if str(value).strip()))
 
 
+def _has_batting_contribution(stat_row: dict[str, Any]) -> bool:
+    runs = int(stat_row.get("runs", 0) or 0)
+    balls = int(stat_row.get("balls", 0) or 0)
+    dismissal = str(stat_row.get("dismissal") or "").strip()
+    return runs > 0 or balls > 0 or bool(dismissal)
+
+
+def _has_bowling_contribution(stat_row: dict[str, Any]) -> bool:
+    overs_balls = parse_overs_to_balls(float(stat_row.get("overs", 0) or 0))
+    maidens = int(stat_row.get("maidens", 0) or 0)
+    runs_conceded = int(stat_row.get("runs_conceded", 0) or 0)
+    wickets = int(stat_row.get("wickets", 0) or 0)
+    dot_balls = int(stat_row.get("dot_balls", 0) or 0)
+    return overs_balls > 0 or maidens > 0 or runs_conceded > 0 or wickets > 0 or dot_balls > 0
+
+
 def _performance_total_row(rows: list[dict[str, Any]], mode: str, label: str, team_id: str | None = None, team_name: str | None = None) -> dict[str, Any]:
     players_count = len(rows)
     matches_played = int(sum(int(row.get("matches_played", 0) or 0) for row in rows))
@@ -783,6 +799,10 @@ class AnalyticsService:
             if not match:
                 continue
             if include_venue and venue_id and str(match.get("venue_id")) != str(venue_id):
+                continue
+            if mode == "batting" and not _has_batting_contribution(stat_row):
+                continue
+            if mode == "bowling" and not _has_bowling_contribution(stat_row):
                 continue
 
             team = team_lookup.get(str(player.get("team_id"))) or {"id": player.get("team_id"), "team_name": "Unknown team"}
