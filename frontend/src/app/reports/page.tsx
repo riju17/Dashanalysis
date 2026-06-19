@@ -12,6 +12,7 @@ import type {
   MatchRecord,
   Player,
   PlayerPerformanceReportResponse,
+  PlayerPerformanceRow,
   Team,
   Venue,
 } from "@/types/cricket";
@@ -114,8 +115,52 @@ export default function ReportsPage() {
     [],
   );
 
-  const performanceTeamTotals = performanceReport?.team_totals ?? [];
-  const performanceOverallTotal = performanceReport?.overall_total ?? null;
+  const normalizedPerformanceReport = useMemo(() => {
+    if (!performanceReport) return null;
+
+    const matchIdsByTeam = new Map<string, Set<string>>();
+    const overallMatchIds = new Set<string>();
+
+    const collectMatchIds = (row: PlayerPerformanceRow) => {
+      const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
+      if (ids.length > 0) {
+        return ids;
+      }
+      return [];
+    };
+
+    performanceReport.rows.forEach((row) => {
+      const key = row.team_id || row.team_name;
+      if (!key) return;
+      const teamMatchIds = matchIdsByTeam.get(key) ?? new Set<string>();
+      collectMatchIds(row).forEach((matchId) => {
+        teamMatchIds.add(matchId);
+        overallMatchIds.add(matchId);
+      });
+      matchIdsByTeam.set(key, teamMatchIds);
+    });
+
+    return {
+      ...performanceReport,
+      team_totals: (performanceReport.team_totals ?? []).map((total) => {
+        const key = String(total.team_id ?? total.team_name ?? total.label);
+        const uniqueMatches = matchIdsByTeam.get(key);
+        return {
+          ...total,
+          matches_played: uniqueMatches?.size ?? total.matches_played,
+        };
+      }),
+      overall_total: performanceReport.overall_total
+        ? {
+            ...performanceReport.overall_total,
+            matches_played: overallMatchIds.size || performanceReport.overall_total.matches_played,
+          }
+        : null,
+    };
+  }, [performanceReport]);
+
+  const performanceTeamTotals = normalizedPerformanceReport?.team_totals ?? [];
+  const performanceOverallTotal = normalizedPerformanceReport?.overall_total ?? null;
 
   const styleOptions = reportMode === "batting" ? battingStyleOptions : bowlingStyleOptions;
 
@@ -201,15 +246,15 @@ export default function ReportsPage() {
   };
 
   const exportPerformanceReport = async (format: "csv" | "pdf") => {
-    if (!performanceReport) return;
+    if (!normalizedPerformanceReport) return;
     setPerformanceExportingFormat(format);
     try {
       const blob = await api.exportReport({
         report_kind: "player_performance",
         format,
-        performance_report: performanceReport,
+        performance_report: normalizedPerformanceReport,
       });
-      downloadBlob(blob, toFilename(performanceReport.report_title, format));
+      downloadBlob(blob, toFilename(normalizedPerformanceReport.report_title, format));
     } finally {
       setPerformanceExportingFormat(null);
     }
