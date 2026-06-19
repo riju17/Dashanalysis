@@ -79,7 +79,7 @@ python -m uvicorn main:app --reload --port 8000
 
 Create `frontend/.env.local` from `frontend/.env.example` and set:
 
-- `NEXT_PUBLIC_API_URL`
+- `BACKEND_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -214,7 +214,7 @@ The 10-team color system is defined in `frontend/src/config/teamThemes.ts`. Each
 ### Frontend on Vercel
 
 1. Import the `frontend/` directory into Vercel.
-2. Set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2. Set `BACKEND_URL`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Deploy.
 
 ### Backend on Render/Railway/Fly.io

@@ -50,7 +50,10 @@ def team_strength_score(
 def parse_overs_to_balls(overs: float) -> int:
     whole_overs = int(overs or 0)
     fractional = round(((overs or 0) - whole_overs) * 10)
-    return (whole_overs * 6) + min(max(fractional, 0), 5)
+    if fractional < 0:
+        fractional = 0
+    carry, balls = divmod(fractional, 6)
+    return ((whole_overs + carry) * 6) + balls
 
 
 def balls_to_overs(balls: int) -> float:

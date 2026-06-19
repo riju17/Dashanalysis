@@ -112,7 +112,9 @@ class ImportValidationService:
     def _overs_valid(self, overs: float) -> bool:
         whole = int(overs)
         balls = round((overs - whole) * 10)
-        return 0 <= balls <= 5
+        if balls < 0:
+            return False
+        return balls < 10
 
     def merge_warnings(self, parsed_json: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
         merged = dict(parsed_json)

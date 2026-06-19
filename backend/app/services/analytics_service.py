@@ -117,6 +117,23 @@ def _unique_string_ids(values: list[Any] | None) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values if str(value).strip()))
 
 
+def _unique_match_ids(rows: list[dict[str, Any]]) -> list[str]:
+    match_ids: list[str] = []
+    for row in rows:
+        row_match_ids = row.get("match_ids")
+        if isinstance(row_match_ids, list):
+            match_ids.extend(str(match_id) for match_id in row_match_ids if str(match_id).strip())
+            continue
+        match_id = row.get("match_id")
+        if match_id is not None and str(match_id).strip():
+            match_ids.append(str(match_id))
+    return list(dict.fromkeys(match_ids))
+
+
+def _matches_played_from_rows(rows: list[dict[str, Any]]) -> int:
+    return len(_unique_match_ids(rows))
+
+
 def _has_batting_contribution(stat_row: dict[str, Any]) -> bool:
     runs = int(stat_row.get("runs", 0) or 0)
     balls = int(stat_row.get("balls", 0) or 0)
@@ -135,7 +152,7 @@ def _has_bowling_contribution(stat_row: dict[str, Any]) -> bool:
 
 def _performance_total_row(rows: list[dict[str, Any]], mode: str, label: str, team_id: str | None = None, team_name: str | None = None) -> dict[str, Any]:
     players_count = len(rows)
-    matches_played = int(sum(int(row.get("matches_played", 0) or 0) for row in rows))
+    matches_played = _matches_played_from_rows(rows)
     if mode == "batting":
         total_runs = int(sum(int(row.get("runs", 0) or 0) for row in rows))
         total_balls = int(sum(int(row.get("balls", 0) or 0) for row in rows))
@@ -900,6 +917,7 @@ class AnalyticsService:
             ordered_rows = sorted(rows, key=lambda item: (float(item["score"]), str(item["match_date"] or ""), int(item["match_number"] or 0)), reverse=True)
             best_match_row = ordered_rows[0]
             match_ids = {str(row["match_id"]) for row in rows}
+            unique_match_ids = sorted(match_ids)
 
             if mode == "batting":
                 total_runs = int(sum(row["runs"] for row in rows))
@@ -924,6 +942,7 @@ class AnalyticsService:
                         "bowling_style": player.get("bowling_style"),
                         "bowling_style_code": _bowling_style_code(player.get("bowling_style")),
                         "matches_played": len(match_ids),
+                        "match_ids": unique_match_ids,
                         "overs_balls": 0,
                         "overs": 0.0,
                         "maidens": 0,
@@ -966,6 +985,7 @@ class AnalyticsService:
                         "bowling_style": player.get("bowling_style"),
                         "bowling_style_code": _bowling_style_code(player.get("bowling_style")),
                         "matches_played": len(match_ids),
+                        "match_ids": unique_match_ids,
                         "overs_balls": total_overs_balls,
                         "overs": total_overs,
                         "maidens": total_maidens,

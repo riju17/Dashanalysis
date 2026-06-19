@@ -193,6 +193,7 @@ class PlayerPerformanceRow(BaseModel):
     strike_rate: float = 0.0
     best_match: PlayerPerformanceBestMatch
     best_score: float
+    match_ids: list[UUID] = Field(default_factory=list)
 
 
 class PlayerPerformanceAggregate(BaseModel):

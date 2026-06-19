@@ -74,6 +74,19 @@ def _performance_style_value(report: dict[str, Any]) -> str:
     return style or "All"
 
 
+def _unique_match_count(rows: list[dict[str, Any]]) -> int:
+    match_ids: list[str] = []
+    for row in rows:
+        row_match_ids = row.get("match_ids")
+        if isinstance(row_match_ids, list):
+            match_ids.extend(str(match_id) for match_id in row_match_ids if str(match_id).strip())
+            continue
+        match_id = row.get("match_id")
+        if match_id is not None and str(match_id).strip():
+            match_ids.append(str(match_id))
+    return len(dict.fromkeys(match_ids))
+
+
 def _best_match_label(best_match: dict[str, Any]) -> str:
     match_number = best_match.get("match_number")
     opponent = best_match.get("opponent_team_name") or "Unknown opponent"
@@ -244,7 +257,7 @@ def _derive_performance_totals(report: dict[str, Any]) -> tuple[list[dict[str, A
                     "team_id": sample.get("team_id"),
                     "team_name": team_name,
                     "players_count": len(team_rows),
-                    "matches_played": int(sum(int(row.get("matches_played", 0) or 0) for row in team_rows)),
+                    "matches_played": _unique_match_count(team_rows),
                     "overs_balls": overs_balls,
                     "overs": balls_to_overs(overs_balls),
                     "maidens": int(sum(int(row.get("maidens", 0) or 0) for row in team_rows)),
@@ -261,7 +274,7 @@ def _derive_performance_totals(report: dict[str, Any]) -> tuple[list[dict[str, A
                     "team_id": sample.get("team_id"),
                     "team_name": team_name,
                     "players_count": len(team_rows),
-                    "matches_played": int(sum(int(row.get("matches_played", 0) or 0) for row in team_rows)),
+                    "matches_played": _unique_match_count(team_rows),
                     "overs_balls": 0,
                     "overs": 0.0,
                     "maidens": 0,
@@ -287,7 +300,7 @@ def _derive_performance_totals(report: dict[str, Any]) -> tuple[list[dict[str, A
                 "label": "Overall Total",
                 "team_name": "Overall Total",
                 "players_count": len(total_rows),
-                "matches_played": int(sum(int(row.get("matches_played", 0) or 0) for row in total_rows)),
+                "matches_played": _unique_match_count(total_rows),
                 "overs_balls": overs_balls,
                 "overs": balls_to_overs(overs_balls),
                 "maidens": int(sum(int(row.get("maidens", 0) or 0) for row in total_rows)),
@@ -303,7 +316,7 @@ def _derive_performance_totals(report: dict[str, Any]) -> tuple[list[dict[str, A
                 "label": "Overall Total",
                 "team_name": "Overall Total",
                 "players_count": len(total_rows),
-                "matches_played": int(sum(int(row.get("matches_played", 0) or 0) for row in total_rows)),
+                "matches_played": _unique_match_count(total_rows),
                 "overs_balls": 0,
                 "overs": 0.0,
                 "maidens": 0,

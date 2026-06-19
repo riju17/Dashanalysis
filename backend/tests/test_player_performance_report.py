@@ -373,6 +373,16 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "stumpings": 0,
             },
         )
+        alpha_spinner = store.insert(
+            "players",
+            {
+                "player_name": "Alpha Spinner",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Left-arm orthodox spin",
+            },
+        )
         store.insert(
             "player_match_stats",
             {
@@ -396,6 +406,29 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "stumpings": 0,
             },
         )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-3",
+                "match_id": "match-1",
+                "player_id": alpha_spinner["id"],
+                "team_id": alpha["id"],
+                "overs": 2.0,
+                "maidens": 0,
+                "runs_conceded": 10,
+                "wickets": 1,
+                "dot_balls": 6,
+                "economy": 5.0,
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
 
         report = analytics_service.player_performance_report(
             mode="bowling",
@@ -406,12 +439,106 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         )
 
         self.assertEqual(report["filters"]["team_names"], ["Alpha"])
-        self.assertEqual(len(report["rows"]), 1)
+        self.assertEqual(len(report["rows"]), 2)
         self.assertEqual(report["rows"][0]["player_name"], "Alpha Fast Bowler")
         self.assertEqual(len(report["team_totals"]), 1)
         self.assertEqual(report["team_totals"][0]["team_name"], "Alpha")
-        self.assertEqual(report["team_totals"][0]["wickets"], 2)
-        self.assertEqual(report["overall_total"]["wickets"], 2)
+        self.assertEqual(report["team_totals"][0]["matches_played"], 1)
+        self.assertEqual(report["team_totals"][0]["wickets"], 3)
+        self.assertEqual(report["overall_total"]["matches_played"], 1)
+        self.assertEqual(report["overall_total"]["wickets"], 3)
+
+    def test_bowling_report_normalizes_six_balls_to_one_over(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        bowler = store.insert(
+            "players",
+            {
+                "player_name": "Death Over Bowler",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm fast",
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "match-6balls",
+                "match_date": "2026-06-12",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 18,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+            },
+        )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-6balls",
+                "match_id": "match-6balls",
+                "player_id": bowler["id"],
+                "team_id": alpha["id"],
+                "overs": 0.6,
+                "maidens": 0,
+                "runs_conceded": 6,
+                "wickets": 1,
+                "dot_balls": 4,
+                "economy": 6.0,
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
+
+        report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="All",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+
+        self.assertEqual(len(report["rows"]), 1)
+        self.assertEqual(report["rows"][0]["overs_balls"], 6)
+        self.assertEqual(report["rows"][0]["overs"], 1.0)
+        self.assertAlmostEqual(report["rows"][0]["economy"], 6.0, places=2)
+        self.assertEqual(report["overall_total"]["overs_balls"], 6)
+        self.assertEqual(report["overall_total"]["overs"], 1.0)
 
     def test_batting_report_supports_all_style_filter(self):
         alpha = store.insert(

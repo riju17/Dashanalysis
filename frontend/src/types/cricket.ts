@@ -211,6 +211,7 @@ export type PlayerPerformanceRow = {
   strike_rate: number;
   best_match: PlayerPerformanceBestMatch;
   best_score: number;
+  match_ids?: string[];
 };
 
 export type PlayerPerformanceAggregate = {
