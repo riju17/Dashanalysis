@@ -119,7 +119,6 @@ export default function ReportsPage() {
     if (!performanceReport) return null;
 
     const matchIdsByTeam = new Map<string, Set<string>>();
-    const overallMatchIds = new Set<string>();
 
     const collectMatchIds = (row: PlayerPerformanceRow) => {
       const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
@@ -135,7 +134,6 @@ export default function ReportsPage() {
       const teamMatchIds = matchIdsByTeam.get(key) ?? new Set<string>();
       collectMatchIds(row).forEach((matchId) => {
         teamMatchIds.add(matchId);
-        overallMatchIds.add(matchId);
       });
       matchIdsByTeam.set(key, teamMatchIds);
     });
@@ -151,10 +149,7 @@ export default function ReportsPage() {
         };
       }),
       overall_total: performanceReport.overall_total
-        ? {
-            ...performanceReport.overall_total,
-            matches_played: overallMatchIds.size || performanceReport.overall_total.matches_played,
-          }
+        ? performanceReport.overall_total
         : null,
     };
   }, [performanceReport]);

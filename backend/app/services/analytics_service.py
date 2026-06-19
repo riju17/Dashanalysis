@@ -784,6 +784,15 @@ class AnalyticsService:
         team_lookup = self._team_lookup(context)
         venue_lookup = self._venue_lookup(context)
         match_lookup = {str(match.get("id")): match for match in self._matches(context)}
+        venue_match_count = 0
+        if include_venue and venue_id:
+            venue_match_count = len(
+                {
+                    str(match.get("id"))
+                    for match in self._matches(context)
+                    if str(match.get("venue_id")) == str(venue_id)
+                }
+            )
 
         selected_venue = None
         if include_venue:
@@ -1009,7 +1018,9 @@ class AnalyticsService:
 
         team_totals = _team_total_rows(report_rows, mode, team_lookup, selected_team_ids or None)
         overall_total = _performance_total_row(report_rows, mode, "Overall Total")
-        if included_match_ids:
+        if include_venue and venue_match_count:
+            overall_total["matches_played"] = venue_match_count
+        elif included_match_ids:
             overall_total["matches_played"] = len(included_match_ids)
 
         if include_venue and selected_venue:
