@@ -24,6 +24,178 @@ from app.utils.cricket_calculations import (
 logger = logging.getLogger(__name__)
 
 
+def _normalize_report_value(value: Any) -> str:
+    return " ".join(str(value or "").split()).casefold()
+
+
+def _bowling_style_group(style: Any) -> str:
+    normalized = _normalize_report_value(style)
+    if not normalized:
+        return "others"
+    fast_markers = (
+        "fast",
+        "medium",
+        "pace",
+        "seam",
+    )
+    spinner_markers = (
+        "spin",
+        "offbreak",
+        "off break",
+        "legbreak",
+        "leg break",
+        "orthodox",
+        "wrist",
+        "chinaman",
+    )
+    if any(marker in normalized for marker in fast_markers):
+        return "fast bowler"
+    if any(marker in normalized for marker in spinner_markers):
+        return "spinner"
+    return "others"
+
+
+def _bowling_style_code(style: Any) -> str:
+    normalized = _normalize_report_value(style)
+    if not normalized:
+        return "OTHERS"
+    if normalized in {"ramf", "lamf", "raos", "las", "rals", "ramb", "lacm", "lamb"}:
+        return normalized.upper()
+
+    compact = normalized.replace("-", " ")
+    is_left = "left" in compact
+    is_right = "right" in compact
+
+    if any(marker in compact for marker in ("offbreak", "off break", "off spin", "offspin")):
+        return "LAS" if is_left else "RAOS"
+    if any(marker in compact for marker in ("orthodox",)):
+        return "LAS" if is_left else "RAOS"
+    if any(marker in compact for marker in ("legbreak", "leg break", "leg spin", "legspin")):
+        return "RALS"
+    if any(marker in compact for marker in ("chinaman", "wrist")):
+        return "LACM"
+    if any(marker in compact for marker in ("fast", "pace", "seam", "medium")):
+        if "medium" in compact and "fast" not in compact and "pace" not in compact and "seam" not in compact:
+            if is_left:
+                return "LAMB"
+            if is_right:
+                return "RAMB"
+        if is_left:
+            return "LAMF"
+        if is_right:
+            return "RAMF"
+        return "OTHERS"
+    if "spin" in compact:
+        return "LAS" if is_left else "RAOS"
+    return "OTHERS"
+
+
+def _is_all_style_filter(style: Any) -> bool:
+    normalized = _normalize_report_value(style)
+    return normalized in {
+        "all",
+        "all batting",
+        "all batting styles",
+        "all batting style",
+        "all bowlers",
+        "all bowling",
+        "all bowling styles",
+        "all bowling style",
+        "all bowler",
+    }
+
+
+def _report_style_label(style: Any, mode: str) -> str:
+    if _is_all_style_filter(style):
+        return "All Batting Styles" if mode == "batting" else "All Bowlers"
+    return str(style or "").strip()
+
+
+def _unique_string_ids(values: list[Any] | None) -> list[str]:
+    if not values:
+        return []
+    return list(dict.fromkeys(str(value) for value in values if str(value).strip()))
+
+
+def _performance_total_row(rows: list[dict[str, Any]], mode: str, label: str, team_id: str | None = None, team_name: str | None = None) -> dict[str, Any]:
+    players_count = len(rows)
+    matches_played = int(sum(int(row.get("matches_played", 0) or 0) for row in rows))
+    if mode == "batting":
+        total_runs = int(sum(int(row.get("runs", 0) or 0) for row in rows))
+        total_balls = int(sum(int(row.get("balls", 0) or 0) for row in rows))
+        total_fours = int(sum(int(row.get("fours", 0) or 0) for row in rows))
+        total_sixes = int(sum(int(row.get("sixes", 0) or 0) for row in rows))
+        strike_rate = round(percentage(total_runs, total_balls), 2) if total_balls else 0.0
+        return {
+            "label": label,
+            "team_id": team_id,
+            "team_name": team_name or label,
+            "players_count": players_count,
+            "matches_played": matches_played,
+            "overs_balls": 0,
+            "overs": 0.0,
+            "maidens": 0,
+            "runs_conceded": 0,
+            "wickets": 0,
+            "dot_balls": 0,
+            "economy": 0.0,
+            "runs": total_runs,
+            "balls": total_balls,
+            "fours": total_fours,
+            "sixes": total_sixes,
+            "strike_rate": strike_rate,
+        }
+
+    total_overs_balls = int(
+        sum(
+            int(row.get("overs_balls", 0) or parse_overs_to_balls(float(row.get("overs", 0) or 0)))
+            for row in rows
+        )
+    )
+    total_overs = balls_to_overs(total_overs_balls)
+    total_maidens = int(sum(int(row.get("maidens", 0) or 0) for row in rows))
+    total_runs_conceded = int(sum(int(row.get("runs_conceded", 0) or 0) for row in rows))
+    total_wickets = int(sum(int(row.get("wickets", 0) or 0) for row in rows))
+    total_dot_balls = int(sum(int(row.get("dot_balls", 0) or 0) for row in rows))
+    economy = round(total_runs_conceded / (total_overs_balls / 6), 2) if total_overs_balls else 0.0
+    return {
+        "label": label,
+        "team_id": team_id,
+        "team_name": team_name or label,
+        "players_count": players_count,
+        "matches_played": matches_played,
+        "overs_balls": total_overs_balls,
+        "overs": total_overs,
+        "maidens": total_maidens,
+        "runs_conceded": total_runs_conceded,
+        "wickets": total_wickets,
+        "dot_balls": total_dot_balls,
+        "economy": economy,
+        "runs": 0,
+        "balls": 0,
+        "fours": 0,
+        "sixes": 0,
+        "strike_rate": 0.0,
+    }
+
+
+def _team_total_rows(rows: list[dict[str, Any]], mode: str, team_lookup: dict[str, dict[str, Any]], team_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row.get("team_id"))].append(row)
+
+    if team_ids:
+        ordered_team_ids = team_ids
+    else:
+        ordered_team_ids = sorted(grouped.keys(), key=lambda team_id: str(team_lookup.get(team_id, {}).get("team_name", team_id)))
+
+    totals: list[dict[str, Any]] = []
+    for team_id in ordered_team_ids:
+        team = team_lookup.get(team_id) or {"team_name": "Unknown team"}
+        totals.append(_performance_total_row(grouped.get(team_id, []), mode, str(team.get("team_name", "Unknown team")), team_id=team_id, team_name=team.get("team_name", "Unknown team")))
+    return totals
+
+
 class AnalyticsService:
     def __init__(self, data_store=store):
         self.store = data_store
@@ -550,6 +722,285 @@ class AnalyticsService:
             logger.exception("Failed to build player analytics using tables: players, player_match_stats.")
             player = self.store.get("players", player_id)
             return self._empty_player_summary(player)
+
+    def player_performance_report(
+        self,
+        mode: str,
+        style: str,
+        venue_id: str | None = None,
+        include_venue: bool = False,
+        team_ids: list[str] | None = None,
+        context: dict[str, list[dict[str, Any]]] | None = None,
+    ) -> dict[str, Any]:
+        context = self._context(context, "teams", "venues", "matches", "players", "player_match_stats")
+        mode = (mode or "").strip().lower()
+        style_key = _normalize_report_value(style)
+        all_style = _is_all_style_filter(style)
+        selected_team_ids = _unique_string_ids(team_ids)
+        if mode not in {"batting", "bowling"} or (not style_key and not all_style):
+            return {
+                "report_title": "Player Performance Report",
+                "filters": {"mode": mode, "style": style, "use_venue_filter": include_venue, "venue_id": venue_id, "team_ids": selected_team_ids or None},
+                "summary": ["No valid filters were provided."],
+                "rows": [],
+                "team_totals": [],
+                "overall_total": None,
+            }
+
+        player_lookup = self._player_lookup(context)
+        team_lookup = self._team_lookup(context)
+        venue_lookup = self._venue_lookup(context)
+        match_lookup = {str(match.get("id")): match for match in self._matches(context)}
+
+        selected_venue = None
+        if include_venue:
+            selected_venue = venue_lookup.get(str(venue_id)) if venue_id else None
+            if venue_id and not selected_venue:
+                return {
+                    "report_title": "Player Performance Report",
+                    "filters": {"mode": mode, "style": style, "use_venue_filter": include_venue, "venue_id": venue_id, "team_ids": selected_team_ids or None},
+                    "summary": ["Selected venue could not be found."],
+                    "rows": [],
+                    "team_totals": [],
+                    "overall_total": None,
+                }
+
+        filtered_rows: list[dict[str, Any]] = []
+        for stat_row in self._stats(context):
+            player = player_lookup.get(str(stat_row.get("player_id")))
+            if not player:
+                continue
+            if selected_team_ids and str(player.get("team_id")) not in selected_team_ids:
+                continue
+            if mode == "batting" and not all_style:
+                player_style = player.get("batting_style")
+                if _normalize_report_value(player_style) != style_key:
+                    continue
+            elif mode == "bowling" and not all_style:
+                if _bowling_style_group(player.get("bowling_style")) != style_key:
+                    continue
+            match = match_lookup.get(str(stat_row.get("match_id")))
+            if not match:
+                continue
+            if include_venue and venue_id and str(match.get("venue_id")) != str(venue_id):
+                continue
+
+            team = team_lookup.get(str(player.get("team_id"))) or {"id": player.get("team_id"), "team_name": "Unknown team"}
+            venue = venue_lookup.get(str(match.get("venue_id"))) or {"venue_name": "Unknown venue"}
+            opponent_id = None
+            if str(match.get("team_a_id")) == str(player.get("team_id")):
+                opponent_id = str(match.get("team_b_id"))
+            elif str(match.get("team_b_id")) == str(player.get("team_id")):
+                opponent_id = str(match.get("team_a_id"))
+            opponent_name = team_lookup.get(opponent_id, {}).get("team_name", "Unknown team") if opponent_id else "Unknown team"
+
+            if mode == "batting":
+                runs = int(stat_row.get("runs", 0) or 0)
+                balls = int(stat_row.get("balls", 0) or 0)
+                fours = int(stat_row.get("fours", 0) or 0)
+                sixes = int(stat_row.get("sixes", 0) or 0)
+                strike_rate = float(stat_row.get("strike_rate", 0) or 0)
+                score = round(batting_impact(runs, strike_rate, fours, sixes), 2)
+                entry = {
+                    "player_id": str(player.get("id")),
+                    "player_name": player.get("player_name", "Unknown"),
+                    "team_id": str(team.get("id")),
+                    "team_name": team.get("team_name", "Unknown team"),
+                    "batting_style": player.get("batting_style"),
+                    "bowling_style": player.get("bowling_style"),
+                    "bowling_style_code": _bowling_style_code(player.get("bowling_style")),
+                    "match_id": str(match.get("id")),
+                    "match_number": int(match.get("match_number") or 0),
+                    "match_date": match.get("match_date"),
+                    "venue_name": venue.get("venue_name", "Unknown venue"),
+                    "opponent_team_name": opponent_name,
+                    "runs": runs,
+                    "balls": balls,
+                    "fours": fours,
+                    "sixes": sixes,
+                    "strike_rate": round((runs / balls) * 100, 2) if balls else 0.0,
+                    "score": score,
+                    "runs_conceded": 0,
+                    "overs_balls": 0,
+                    "maidens": 0,
+                    "wickets": 0,
+                    "dot_balls": 0,
+                    "economy": 0.0,
+                }
+            else:
+                overs_value = float(stat_row.get("overs", 0) or 0)
+                overs_balls = parse_overs_to_balls(overs_value)
+                overs = balls_to_overs(overs_balls)
+                runs_conceded = int(stat_row.get("runs_conceded", 0) or 0)
+                wickets = int(stat_row.get("wickets", 0) or 0)
+                dot_balls = int(stat_row.get("dot_balls", 0) or 0)
+                maidens = int(stat_row.get("maidens", 0) or 0)
+                economy = float(stat_row.get("economy", 0) or 0)
+                if not economy and overs:
+                    economy = round(runs_conceded / overs, 2)
+                score = round(bowling_impact(wickets, dot_balls, economy), 2)
+                entry = {
+                    "player_id": str(player.get("id")),
+                    "player_name": player.get("player_name", "Unknown"),
+                    "team_id": str(team.get("id")),
+                    "team_name": team.get("team_name", "Unknown team"),
+                    "batting_style": player.get("batting_style"),
+                    "bowling_style": player.get("bowling_style"),
+                    "match_id": str(match.get("id")),
+                    "match_number": int(match.get("match_number") or 0),
+                    "match_date": match.get("match_date"),
+                    "venue_name": venue.get("venue_name", "Unknown venue"),
+                    "opponent_team_name": opponent_name,
+                    "runs": 0,
+                    "balls": 0,
+                    "fours": 0,
+                    "sixes": 0,
+                    "strike_rate": 0.0,
+                    "score": score,
+                    "runs_conceded": runs_conceded,
+                    "overs_balls": overs_balls,
+                    "maidens": maidens,
+                    "wickets": wickets,
+                    "dot_balls": dot_balls,
+                    "economy": economy,
+                }
+
+            filtered_rows.append(entry)
+
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in filtered_rows:
+            grouped[row["player_id"]].append(row)
+
+        report_rows: list[dict[str, Any]] = []
+        for player_id, rows in grouped.items():
+            player = player_lookup.get(player_id)
+            if not player:
+                continue
+            team = team_lookup.get(str(player.get("team_id"))) or {"id": player.get("team_id"), "team_name": "Unknown team"}
+            ordered_rows = sorted(rows, key=lambda item: (float(item["score"]), str(item["match_date"] or ""), int(item["match_number"] or 0)), reverse=True)
+            best_match_row = ordered_rows[0]
+            match_ids = {str(row["match_id"]) for row in rows}
+
+            if mode == "batting":
+                total_runs = int(sum(row["runs"] for row in rows))
+                total_balls = int(sum(row["balls"] for row in rows))
+                total_fours = int(sum(row["fours"] for row in rows))
+                total_sixes = int(sum(row["sixes"] for row in rows))
+                best_match = {
+                    "match_id": best_match_row["match_id"],
+                    "match_number": best_match_row["match_number"],
+                    "match_date": best_match_row["match_date"],
+                    "venue_name": best_match_row["venue_name"],
+                    "opponent_team_name": best_match_row["opponent_team_name"],
+                    "score": best_match_row["score"],
+                }
+                report_rows.append(
+                    {
+                        "player_id": player_id,
+                        "player_name": player.get("player_name", "Unknown"),
+                        "team_id": str(team.get("id")),
+                        "team_name": team.get("team_name", "Unknown team"),
+                        "batting_style": player.get("batting_style"),
+                        "bowling_style": player.get("bowling_style"),
+                        "bowling_style_code": _bowling_style_code(player.get("bowling_style")),
+                        "matches_played": len(match_ids),
+                        "overs_balls": 0,
+                        "overs": 0.0,
+                        "maidens": 0,
+                        "runs_conceded": 0,
+                        "wickets": 0,
+                        "dot_balls": 0,
+                        "economy": 0.0,
+                        "runs": total_runs,
+                        "balls": total_balls,
+                        "fours": total_fours,
+                        "sixes": total_sixes,
+                        "strike_rate": round((total_runs / total_balls) * 100, 2) if total_balls else 0.0,
+                        "best_match": best_match,
+                        "best_score": best_match_row["score"],
+                    }
+                )
+            else:
+                total_overs_balls = int(sum(row["overs_balls"] for row in rows))
+                total_overs = balls_to_overs(total_overs_balls)
+                total_runs_conceded = int(sum(row["runs_conceded"] for row in rows))
+                total_maidens = int(sum(row["maidens"] for row in rows))
+                total_wickets = int(sum(row["wickets"] for row in rows))
+                total_dot_balls = int(sum(row["dot_balls"] for row in rows))
+                economy = round(total_runs_conceded / (total_overs_balls / 6), 2) if total_overs_balls else 0.0
+                best_match = {
+                    "match_id": best_match_row["match_id"],
+                    "match_number": best_match_row["match_number"],
+                    "match_date": best_match_row["match_date"],
+                    "venue_name": best_match_row["venue_name"],
+                    "opponent_team_name": best_match_row["opponent_team_name"],
+                    "score": best_match_row["score"],
+                }
+                report_rows.append(
+                    {
+                        "player_id": player_id,
+                        "player_name": player.get("player_name", "Unknown"),
+                        "team_id": str(team.get("id")),
+                        "team_name": team.get("team_name", "Unknown team"),
+                        "batting_style": player.get("batting_style"),
+                        "bowling_style": player.get("bowling_style"),
+                        "bowling_style_code": _bowling_style_code(player.get("bowling_style")),
+                        "matches_played": len(match_ids),
+                        "overs_balls": total_overs_balls,
+                        "overs": total_overs,
+                        "maidens": total_maidens,
+                        "runs_conceded": total_runs_conceded,
+                        "wickets": total_wickets,
+                        "dot_balls": total_dot_balls,
+                        "economy": economy,
+                        "runs": 0,
+                        "balls": 0,
+                        "fours": 0,
+                        "sixes": 0,
+                        "strike_rate": 0.0,
+                        "best_match": best_match,
+                        "best_score": best_match_row["score"],
+                    }
+                )
+
+        report_rows.sort(key=lambda row: (float(row["best_score"]), int(row["matches_played"]), row["player_name"]), reverse=True)
+
+        team_totals = _team_total_rows(report_rows, mode, team_lookup, selected_team_ids or None)
+        overall_total = _performance_total_row(report_rows, mode, "Overall Total")
+
+        if include_venue and selected_venue:
+            venue_name = selected_venue.get("venue_name", "Selected venue")
+            venue_label = f" at {venue_name}"
+        else:
+            venue_label = ""
+
+        report_style = _report_style_label(style, mode)
+        team_filter_label = ", ".join(
+            team_lookup.get(team_id, {}).get("team_name", "Unknown team") for team_id in selected_team_ids
+        )
+        report_title = f"{report_style} {mode.title()} Performance Report{venue_label}"
+        summary = [
+            f"{len(report_rows)} players matched the selected {mode} style." if not all_style else f"{len(report_rows)} players matched all {mode} styles.",
+            f"{'Venue filter applied to ' + selected_venue.get('venue_name', 'the selected venue') if selected_venue else 'No venue filter was applied.'}",
+            f"{'Teams filtered to ' + team_filter_label if selected_team_ids else 'No team filter was applied.'}",
+            "Names are returned from the canonical player, team, and venue tables.",
+        ]
+        return {
+            "report_title": report_title,
+            "filters": {
+                "mode": mode,
+                "style": style,
+                "use_venue_filter": include_venue,
+                "venue_id": venue_id,
+                "venue_name": selected_venue.get("venue_name") if selected_venue else None,
+                "team_ids": selected_team_ids or None,
+                "team_names": [team_lookup.get(team_id, {}).get("team_name", "Unknown team") for team_id in selected_team_ids] if selected_team_ids else None,
+            },
+            "summary": summary,
+            "rows": report_rows,
+            "team_totals": team_totals,
+            "overall_total": overall_total,
+        }
 
     def venue_summary(self, venue_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
         context = self._context(context, "venues", "matches")

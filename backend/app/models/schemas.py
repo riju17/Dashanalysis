@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -151,6 +151,84 @@ class ReportResponse(BaseModel):
     report_title: str
     report_json: dict[str, Any]
     created_at: datetime
+
+
+class PlayerPerformanceReportRequest(BaseModel):
+    use_venue_filter: bool = False
+    venue_id: Optional[UUID] = None
+    mode: Literal["batting", "bowling"]
+    style: str
+    team_ids: Optional[list[UUID]] = None
+
+
+class PlayerPerformanceBestMatch(BaseModel):
+    match_id: UUID
+    match_number: int
+    match_date: date
+    venue_name: str
+    opponent_team_name: str
+    score: float
+
+
+class PlayerPerformanceRow(BaseModel):
+    player_id: UUID
+    player_name: str
+    team_id: UUID
+    team_name: str
+    batting_style: Optional[str] = None
+    bowling_style: Optional[str] = None
+    bowling_style_code: Optional[str] = None
+    matches_played: int
+    overs_balls: Optional[int] = None
+    overs: float = 0.0
+    maidens: int = 0
+    runs_conceded: int = 0
+    wickets: int = 0
+    dot_balls: int = 0
+    economy: float = 0.0
+    runs: int = 0
+    balls: int = 0
+    fours: int = 0
+    sixes: int = 0
+    strike_rate: float = 0.0
+    best_match: PlayerPerformanceBestMatch
+    best_score: float
+
+
+class PlayerPerformanceAggregate(BaseModel):
+    label: str
+    team_id: Optional[UUID] = None
+    team_name: str
+    players_count: int = 0
+    matches_played: int = 0
+    overs_balls: int = 0
+    overs: float = 0.0
+    maidens: int = 0
+    runs_conceded: int = 0
+    wickets: int = 0
+    dot_balls: int = 0
+    economy: float = 0.0
+    runs: int = 0
+    balls: int = 0
+    fours: int = 0
+    sixes: int = 0
+    strike_rate: float = 0.0
+
+
+class PlayerPerformanceReportResponse(BaseModel):
+    report_title: str
+    filters: dict[str, Any]
+    summary: list[str]
+    rows: list[PlayerPerformanceRow]
+    team_totals: list[PlayerPerformanceAggregate] = Field(default_factory=list)
+    overall_total: Optional[PlayerPerformanceAggregate] = None
+
+
+class ReportExportRequest(BaseModel):
+    report_kind: Literal["match", "player_performance"]
+    format: Literal["csv", "pdf"]
+    match_report: Optional[dict[str, Any]] = None
+    performance_report: Optional[PlayerPerformanceReportResponse] = None
 
 
 class DashboardResponse(BaseModel):

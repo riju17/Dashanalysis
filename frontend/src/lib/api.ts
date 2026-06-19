@@ -10,6 +10,9 @@ import type {
   PredictionInput,
   PredictionOutput,
   MatchReportCreateResponse,
+  PlayerPerformanceReportRequest,
+  PlayerPerformanceReportResponse,
+  ReportExportRequest,
   ReportRecord,
   Team,
   TeamAnalytics,
@@ -73,6 +76,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL is not set.");
+  }
+  const headers = new Headers(init?.headers || {});
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const response = await fetch(`${apiUrl}${path}`, {
+    cache: "no-store",
+    ...init,
+    headers,
+  });
+  if (!response.ok) {
+    let errorMessage = `Request failed with status ${response.status}.`;
+    try {
+      const payload = await response.json();
+      errorMessage = payload?.detail || payload?.message || errorMessage;
+    } catch {
+      const text = await response.text();
+      if (text) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
+  }
+  return response.blob();
+}
+
 export const api = {
   getDashboard: () => request<DashboardData>("/analytics/dashboard"),
   getTeams: () => request<Team[]>("/teams"),
@@ -117,6 +151,16 @@ export const api = {
     request(`/matches/${matchId}`, { method: "DELETE" }),
   createReport: async (matchId: string) =>
     request<MatchReportCreateResponse>(`/reports/match/${matchId}`, { method: "POST" }),
+  createPlayerPerformanceReport: async (payload: PlayerPerformanceReportRequest) =>
+    request<PlayerPerformanceReportResponse>("/reports/player-performance", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  exportReport: async (payload: ReportExportRequest) =>
+    requestBlob("/reports/export", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   importScreenshots: async (files: File[]) => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));

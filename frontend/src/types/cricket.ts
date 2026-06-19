@@ -171,6 +171,92 @@ export type ReportRecord = {
   created_at?: string;
 };
 
+export type PlayerPerformanceReportRequest = {
+  use_venue_filter: boolean;
+  venue_id?: string | null;
+  mode: "batting" | "bowling";
+  style: string;
+  team_ids?: string[] | null;
+};
+
+export type PlayerPerformanceBestMatch = {
+  match_id: string;
+  match_number: number;
+  match_date: string;
+  venue_name: string;
+  opponent_team_name: string;
+  score: number;
+};
+
+export type PlayerPerformanceRow = {
+  player_id: string;
+  player_name: string;
+  team_id: string;
+  team_name: string;
+  batting_style?: string | null;
+  bowling_style?: string | null;
+  bowling_style_code?: string | null;
+  matches_played: number;
+  overs_balls?: number | null;
+  overs: number;
+  maidens: number;
+  runs_conceded: number;
+  wickets: number;
+  dot_balls: number;
+  economy: number;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  strike_rate: number;
+  best_match: PlayerPerformanceBestMatch;
+  best_score: number;
+};
+
+export type PlayerPerformanceAggregate = {
+  label: string;
+  team_id?: string | null;
+  team_name: string;
+  players_count: number;
+  matches_played: number;
+  overs_balls: number;
+  overs: number;
+  maidens: number;
+  runs_conceded: number;
+  wickets: number;
+  dot_balls: number;
+  economy: number;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  strike_rate: number;
+};
+
+export type PlayerPerformanceReportResponse = {
+  report_title: string;
+  filters: {
+    mode: "batting" | "bowling";
+    style: string;
+    use_venue_filter: boolean;
+    venue_id?: string | null;
+    venue_name?: string | null;
+    team_ids?: string[] | null;
+    team_names?: string[] | null;
+  };
+  summary: string[];
+  rows: PlayerPerformanceRow[];
+  team_totals: PlayerPerformanceAggregate[];
+  overall_total?: PlayerPerformanceAggregate | null;
+};
+
+export type ReportExportRequest = {
+  report_kind: "match" | "player_performance";
+  format: "csv" | "pdf";
+  match_report?: Record<string, unknown> | null;
+  performance_report?: PlayerPerformanceReportResponse | null;
+};
+
 export type MatchReportCreateResponse = {
   report: ReportRecord;
 };
