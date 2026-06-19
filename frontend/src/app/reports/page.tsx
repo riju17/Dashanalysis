@@ -115,10 +115,29 @@ export default function ReportsPage() {
     [],
   );
 
+  const oversToBalls = (overs: number) => {
+    const wholeOvers = Math.trunc(overs || 0);
+    const fractionalBalls = Math.round((((overs || 0) - wholeOvers) * 10));
+    const carry = Math.floor(Math.max(0, fractionalBalls) / 6);
+    const balls = Math.max(0, fractionalBalls) % 6;
+    return ((wholeOvers + carry) * 6) + balls;
+  };
+
+  const ballsToOvers = (balls: number) => {
+    const wholeOvers = Math.floor((balls || 0) / 6);
+    const remainingBalls = Math.max(0, balls || 0) % 6;
+    return Number(`${wholeOvers}.${remainingBalls}`);
+  };
+
   const normalizedPerformanceReport = useMemo(() => {
     if (!performanceReport) return null;
 
     const matchIdsByTeam = new Map<string, Set<string>>();
+    const oversBallsByTeam = new Map<string, number>();
+    const reportVenueId = performanceReport.filters.use_venue_filter ? performanceReport.filters.venue_id ?? null : null;
+    const exactVenueMatchCount = reportVenueId
+      ? matches.filter((match) => match.venue_id === reportVenueId).length
+      : null;
 
     const collectMatchIds = (row: PlayerPerformanceRow) => {
       const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
@@ -136,6 +155,11 @@ export default function ReportsPage() {
         teamMatchIds.add(matchId);
       });
       matchIdsByTeam.set(key, teamMatchIds);
+
+      if (performanceReport.filters.mode === "bowling") {
+        const teamBalls = oversBallsByTeam.get(key) ?? 0;
+        oversBallsByTeam.set(key, teamBalls + (row.overs_balls ?? oversToBalls(row.overs)));
+      }
     });
 
     return {
@@ -143,16 +167,48 @@ export default function ReportsPage() {
       team_totals: (performanceReport.team_totals ?? []).map((total) => {
         const key = String(total.team_id ?? total.team_name ?? total.label);
         const uniqueMatches = matchIdsByTeam.get(key);
+        const exactVenueTeamMatchCount =
+          reportVenueId && total.team_id
+            ? matches.filter(
+                (match) =>
+                  match.venue_id === reportVenueId &&
+                  (match.team_a_id === total.team_id || match.team_b_id === total.team_id),
+              ).length
+            : null;
+        if (performanceReport.filters.mode === "bowling") {
+          const totalBalls = oversBallsByTeam.get(key) ?? total.overs_balls ?? oversToBalls(total.overs);
+          return {
+            ...total,
+            matches_played: exactVenueTeamMatchCount ?? uniqueMatches?.size ?? total.matches_played,
+            overs_balls: totalBalls,
+            overs: ballsToOvers(totalBalls),
+          };
+        }
         return {
           ...total,
-          matches_played: uniqueMatches?.size ?? total.matches_played,
+          matches_played: exactVenueTeamMatchCount ?? uniqueMatches?.size ?? total.matches_played,
         };
       }),
       overall_total: performanceReport.overall_total
-        ? performanceReport.overall_total
+        ? {
+            ...performanceReport.overall_total,
+            matches_played: exactVenueMatchCount ?? performanceReport.overall_total.matches_played,
+            ...(performanceReport.filters.mode === "bowling"
+              ? (() => {
+                  const totalBalls = (performanceReport.rows ?? []).reduce(
+                    (sum, row) => sum + (row.overs_balls ?? oversToBalls(row.overs)),
+                    0,
+                  );
+                  return {
+                    overs_balls: totalBalls,
+                    overs: ballsToOvers(totalBalls),
+                  };
+                })()
+              : {}),
+          }
         : null,
     };
-  }, [performanceReport]);
+  }, [matches, performanceReport]);
 
   const performanceTeamTotals = normalizedPerformanceReport?.team_totals ?? [];
   const performanceOverallTotal = normalizedPerformanceReport?.overall_total ?? null;
