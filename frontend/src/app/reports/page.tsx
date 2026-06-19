@@ -139,14 +139,20 @@ export default function ReportsPage() {
     const exactVenueMatchCount = reportVenueId
       ? matches.filter((match) => match.venue_id === reportVenueId).length
       : null;
+    const exactTeamMatchCount = reportTeamIds.length
+      ? matches.filter((match) => {
+          const isSelectedTeam = reportTeamIds.includes(match.team_a_id) || reportTeamIds.includes(match.team_b_id);
+          return reportVenueId ? isSelectedTeam && match.venue_id === reportVenueId : isSelectedTeam;
+        }).length
+      : null;
     const rowMatchIds = new Set(
       performanceReport.rows.flatMap((row) => row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? []),
     );
     const rowMatchCount = rowMatchIds.size;
     const backendOverallMatchCount = performanceReport.overall_total?.matches_played ?? null;
     const exactReportMatchCount = reportTeamIds.length
-      ? rowMatchCount || backendOverallMatchCount
-      : exactVenueMatchCount || backendOverallMatchCount;
+      ? (exactTeamMatchCount ?? rowMatchCount ?? backendOverallMatchCount)
+      : (exactVenueMatchCount ?? backendOverallMatchCount);
 
     const collectMatchIds = (row: PlayerPerformanceRow) => {
       const ids = row.match_ids?.map((matchId) => String(matchId).trim()).filter(Boolean) ?? [];
