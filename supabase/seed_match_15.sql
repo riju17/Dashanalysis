@@ -24,7 +24,7 @@ update players set player_name = 'Anurag Malviya'       where id = '3d0ebbab-122
 -- Player present in Match 15 scorecard but missing from seed.sql
 insert into players (id, player_name, team_id, role, batting_style, bowling_style, created_at)
 values
-  ('f9e2b8a7-5d31-5a14-9f3e-24d240001111', 'Priyanshu Shukla', '89c8bea7-a025-55f9-8858-3b1220253648', 'All-rounder', 'Left-hand bat', 'Right-arm offbreak', '2026-06-10T15:00:00')
+  ('f9e2b8a7-5d31-5a14-9f3e-24d240001111', 'Priyanshu Shukla', '89c8bea7-a025-55f9-8858-3b1220253648', 'All-rounder', 'Right-hand bat', 'Right-arm medium fast', '2026-06-10T15:00:00')
 on conflict (id) do update set
   player_name = excluded.player_name,
   team_id = excluded.team_id,
