@@ -32,7 +32,6 @@ export default function ReportsPage() {
   const [bowlingFamily, setBowlingFamily] = useState("All");
   const [bowlingFastStyle, setBowlingFastStyle] = useState("");
   const [bowlingSpinnerGroup, setBowlingSpinnerGroup] = useState("");
-  const [bowlingSpinnerStyle, setBowlingSpinnerStyle] = useState("");
   const [matchReport, setMatchReport] = useState<any>(null);
   const [performanceReport, setPerformanceReport] = useState<PlayerPerformanceReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,36 +130,10 @@ export default function ReportsPage() {
   const spinnerGroupOptions = useMemo(
     () => [
       { label: "All spinners", value: "" },
-      { label: "Leg spinners", value: "Leg spinners" },
-      { label: "Off spinners", value: "Off spinners" },
-      { label: "CM (china man)", value: "CM (china man)" },
-    ],
-    [],
-  );
-
-  const legSpinnerOptions = useMemo(
-    () => [
-      { label: "All leg spinners", value: "" },
-      { label: "RALS", value: "RALS" },
-      { label: "LALS", value: "LALS" },
-    ],
-    [],
-  );
-
-  const offSpinnerOptions = useMemo(
-    () => [
-      { label: "All off spinners", value: "" },
-      { label: "RAOS", value: "RAOS" },
-      { label: "LAOS", value: "LAOS" },
-    ],
-    [],
-  );
-
-  const chinaManOptions = useMemo(
-    () => [
-      { label: "All CM bowlers", value: "" },
-      { label: "LCM", value: "LCM" },
-      { label: "RCM", value: "RCM" },
+      { label: "CM", value: "CM" },
+      { label: "Right arm off spin", value: "Right arm off spin" },
+      { label: "Right arm leg spin", value: "Right arm leg spin" },
+      { label: "Left arm spin", value: "Left arm spin" },
     ],
     [],
   );
@@ -184,10 +157,10 @@ export default function ReportsPage() {
       return bowlingFastStyle || "Fast bowler";
     }
     if (bowlingFamily === "Spinners") {
-      return bowlingSpinnerStyle || bowlingSpinnerGroup || "Spinners";
+      return bowlingSpinnerGroup || "Spinners";
     }
     return bowlingFamily;
-  }, [bowlingFamily, bowlingFastStyle, bowlingSpinnerGroup, bowlingSpinnerStyle]);
+  }, [bowlingFamily, bowlingFastStyle, bowlingSpinnerGroup]);
 
   const normalizedPerformanceReport = useMemo(() => {
     if (!performanceReport) return null;
@@ -515,7 +488,6 @@ export default function ReportsPage() {
                         setBowlingFamily(nextFamily);
                         setBowlingFastStyle("");
                         setBowlingSpinnerGroup("");
-                        setBowlingSpinnerStyle("");
                       }}
                       className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
                     >
@@ -543,55 +515,10 @@ export default function ReportsPage() {
                     {bowlingFamily === "Spinners" && (
                       <select
                         value={bowlingSpinnerGroup}
-                        onChange={(event) => {
-                          setBowlingSpinnerGroup(event.target.value);
-                          setBowlingSpinnerStyle("");
-                        }}
+                        onChange={(event) => setBowlingSpinnerGroup(event.target.value)}
                         className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
                       >
                         {spinnerGroupOptions.map((style) => (
-                          <option key={style.label} value={style.value}>
-                            {style.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "Leg spinners" && (
-                      <select
-                        value={bowlingSpinnerStyle}
-                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
-                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
-                      >
-                        {legSpinnerOptions.map((style) => (
-                          <option key={style.label} value={style.value}>
-                            {style.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "Off spinners" && (
-                      <select
-                        value={bowlingSpinnerStyle}
-                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
-                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
-                      >
-                        {offSpinnerOptions.map((style) => (
-                          <option key={style.label} value={style.value}>
-                            {style.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "CM (china man)" && (
-                      <select
-                        value={bowlingSpinnerStyle}
-                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
-                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
-                      >
-                        {chinaManOptions.map((style) => (
                           <option key={style.label} value={style.value}>
                             {style.label}
                           </option>

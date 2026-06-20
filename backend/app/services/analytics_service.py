@@ -72,6 +72,9 @@ def _bowling_style_matches(style: Any, selection: Any) -> bool:
     spinner_codes = {"rals", "lals", "raos", "laos", "lcm", "rcm", "las"}
     leg_spin_codes = {"rals", "lals"}
     off_spin_codes = {"raos", "laos"}
+    right_arm_off_spin_codes = {"raos"}
+    right_arm_leg_spin_codes = {"rals"}
+    left_arm_spin_codes = {"laos", "lals", "las"}
     china_man_codes = {"lcm", "rcm"}
 
     if selected in {"fast bowler", "fast bowlers"}:
@@ -85,6 +88,12 @@ def _bowling_style_matches(style: Any, selection: Any) -> bool:
         return normalized_code in leg_spin_codes
     if selected in {"off spinners", "off spinner", "off spin"}:
         return normalized_code in off_spin_codes
+    if selected in {"right arm off spin", "right-arm off spin"}:
+        return normalized_code in right_arm_off_spin_codes
+    if selected in {"right arm leg spin", "right-arm leg spin"}:
+        return normalized_code in right_arm_leg_spin_codes
+    if selected in {"left arm spin", "left-arm spin"}:
+        return normalized_code in left_arm_spin_codes
     if selected in {"cm", "china man", "cm (china man)", "chinaman"}:
         return normalized_code in china_man_codes
     if selected in leg_spin_codes | off_spin_codes | china_man_codes:

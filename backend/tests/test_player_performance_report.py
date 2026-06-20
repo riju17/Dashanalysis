@@ -639,6 +639,16 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "bowling_style": "Left-arm orthodox spin",
             },
         )
+        right_arm_off_spinner = store.insert(
+            "players",
+            {
+                "player_name": "Right Arm Off Spinner",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm off break",
+            },
+        )
         chinaman = store.insert(
             "players",
             {
@@ -662,7 +672,7 @@ class PlayerPerformanceReportTests(unittest.TestCase):
                 "venue_id": holkar["id"],
             },
         )
-        for index, player in enumerate([fast_bowler, leg_spinner, off_spinner, chinaman], start=1):
+        for index, player in enumerate([fast_bowler, leg_spinner, off_spinner, right_arm_off_spinner, chinaman], start=1):
             store.insert(
                 "player_match_stats",
                 {
@@ -693,39 +703,52 @@ class PlayerPerformanceReportTests(unittest.TestCase):
             venue_id=str(holkar["id"]),
             include_venue=True,
         )
-        self.assertEqual({row["player_name"] for row in spinners_report["rows"]}, {"Leg Spinner", "Off Spinner", "Chinaman"})
-        self.assertEqual(len(spinners_report["rows"]), 3)
+        self.assertEqual(
+            {row["player_name"] for row in spinners_report["rows"]},
+            {"Leg Spinner", "Off Spinner", "Right Arm Off Spinner", "Chinaman"},
+        )
+        self.assertEqual(len(spinners_report["rows"]), 4)
         self.assertNotIn("Fast Bowler", {row["player_name"] for row in spinners_report["rows"]})
 
-        leg_report = analytics_service.player_performance_report(
+        right_arm_leg_report = analytics_service.player_performance_report(
             mode="bowling",
-            style="Leg spinners",
+            style="Right arm leg spin",
             venue_id=str(holkar["id"]),
             include_venue=True,
         )
-        self.assertEqual(len(leg_report["rows"]), 1)
-        self.assertEqual(leg_report["rows"][0]["player_name"], "Leg Spinner")
-        self.assertEqual(leg_report["rows"][0]["bowling_style_code"], "RALS")
+        self.assertEqual(len(right_arm_leg_report["rows"]), 1)
+        self.assertEqual(right_arm_leg_report["rows"][0]["player_name"], "Leg Spinner")
+        self.assertEqual(right_arm_leg_report["rows"][0]["bowling_style_code"], "RALS")
 
-        off_report = analytics_service.player_performance_report(
+        left_arm_spin_report = analytics_service.player_performance_report(
             mode="bowling",
-            style="Off spinners",
+            style="Left arm spin",
             venue_id=str(holkar["id"]),
             include_venue=True,
         )
-        self.assertEqual(len(off_report["rows"]), 1)
-        self.assertEqual(off_report["rows"][0]["player_name"], "Off Spinner")
-        self.assertEqual(off_report["rows"][0]["bowling_style_code"], "LAOS")
+        self.assertEqual(len(left_arm_spin_report["rows"]), 1)
+        self.assertEqual(left_arm_spin_report["rows"][0]["player_name"], "Off Spinner")
+        self.assertEqual(left_arm_spin_report["rows"][0]["bowling_style_code"], "LAOS")
 
-        china_report = analytics_service.player_performance_report(
+        right_arm_off_spin_report = analytics_service.player_performance_report(
             mode="bowling",
-            style="CM (china man)",
+            style="Right arm off spin",
             venue_id=str(holkar["id"]),
             include_venue=True,
         )
-        self.assertEqual(len(china_report["rows"]), 1)
-        self.assertEqual(china_report["rows"][0]["player_name"], "Chinaman")
-        self.assertEqual(china_report["rows"][0]["bowling_style_code"], "LCM")
+        self.assertEqual(len(right_arm_off_spin_report["rows"]), 1)
+        self.assertEqual(right_arm_off_spin_report["rows"][0]["player_name"], "Right Arm Off Spinner")
+        self.assertEqual(right_arm_off_spin_report["rows"][0]["bowling_style_code"], "RAOS")
+
+        cm_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="CM",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(len(cm_report["rows"]), 1)
+        self.assertEqual(cm_report["rows"][0]["player_name"], "Chinaman")
+        self.assertEqual(cm_report["rows"][0]["bowling_style_code"], "LCM")
 
     def test_batting_report_supports_all_style_filter(self):
         alpha = store.insert(
