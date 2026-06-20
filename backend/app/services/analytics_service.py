@@ -55,6 +55,46 @@ def _bowling_style_group(style: Any) -> str:
     return "others"
 
 
+def _bowling_style_matches(style: Any, selection: Any) -> bool:
+    selected = _normalize_report_value(selection)
+    if not selected or selected in {
+        "all",
+        "all bowlers",
+        "all bowling",
+        "all bowling styles",
+        "all bowler",
+    }:
+        return True
+
+    player_code = _bowling_style_code(style)
+    normalized_code = _normalize_report_value(player_code)
+    fast_codes = {"ramf", "lamf", "ramb", "lamb"}
+    spinner_codes = {"rals", "lals", "raos", "laos", "lcm", "rcm", "las"}
+    leg_spin_codes = {"rals", "lals"}
+    off_spin_codes = {"raos", "laos"}
+    china_man_codes = {"lcm", "rcm"}
+
+    if selected in {"fast bowler", "fast bowlers"}:
+        return normalized_code in fast_codes
+    if selected in fast_codes:
+        return normalized_code == selected
+
+    if selected in {"spinner", "spinners", "all spinners", "all spinner"}:
+        return normalized_code in spinner_codes
+    if selected in {"leg spinners", "leg spinner", "leg spin"}:
+        return normalized_code in leg_spin_codes
+    if selected in {"off spinners", "off spinner", "off spin"}:
+        return normalized_code in off_spin_codes
+    if selected in {"cm", "china man", "cm (china man)", "chinaman"}:
+        return normalized_code in china_man_codes
+    if selected in leg_spin_codes | off_spin_codes | china_man_codes:
+        return normalized_code == selected
+
+    if selected == "others":
+        return normalized_code == "others"
+    return _normalize_report_value(_bowling_style_group(style)) == selected
+
+
 def _bowling_style_code(style: Any) -> str:
     normalized = _normalize_report_value(style)
     if not normalized:
@@ -67,26 +107,26 @@ def _bowling_style_code(style: Any) -> str:
     is_right = "right" in compact
 
     if any(marker in compact for marker in ("offbreak", "off break", "off spin", "offspin")):
-        return "LAS" if is_left else "RAOS"
+        return "LAOS" if is_left else "RAOS"
     if any(marker in compact for marker in ("orthodox",)):
-        return "LAS" if is_left else "RAOS"
+        return "LAOS" if is_left else "RAOS"
     if any(marker in compact for marker in ("legbreak", "leg break", "leg spin", "legspin")):
-        return "RALS"
+        return "LALS" if is_left else "RALS"
     if any(marker in compact for marker in ("chinaman", "wrist")):
-        return "LACM"
+        return "LCM" if is_left else "RCM"
     if any(marker in compact for marker in ("fast", "pace", "seam", "medium")):
         if "medium" in compact and "fast" not in compact and "pace" not in compact and "seam" not in compact:
             if is_left:
-                return "LAMB"
+                return "LAMF"
             if is_right:
-                return "RAMB"
+                return "RAMF"
         if is_left:
             return "LAMF"
         if is_right:
             return "RAMF"
         return "OTHERS"
     if "spin" in compact:
-        return "LAS" if is_left else "RAOS"
+        return "LAOS" if is_left else "RAOS"
     return "OTHERS"
 
 
@@ -701,6 +741,8 @@ class AnalyticsService:
                     "overs": 0.0,
                     "wickets": 0,
                     "economy": 0.0,
+                    "runs_conceded": 0,
+                    "dot_balls": 0,
                     "dot_ball_percentage": 0.0,
                     "bowling_strike_impact": 0.0,
                     "pressure_bowling_score": 0.0,
@@ -730,6 +772,8 @@ class AnalyticsService:
                     "overs": overs,
                     "wickets": wickets,
                     "economy": round(runs_conceded / overs, 2) if overs else 0.0,
+                    "runs_conceded": int(runs_conceded),
+                    "dot_balls": dot_balls,
                     "dot_ball_percentage": round(percentage(dot_balls, overs_balls), 2) if overs_balls else 0.0,
                     "bowling_strike_impact": round((wickets * 25) + (dot_balls * 1.25), 2),
                     "pressure_bowling_score": round(bowling_impact(wickets, dot_balls, round(runs_conceded / overs, 2) if overs else 0.0), 2),
@@ -821,7 +865,7 @@ class AnalyticsService:
                 if _normalize_report_value(player_style) != style_key:
                     continue
             elif mode == "bowling" and not all_style:
-                if _bowling_style_group(player.get("bowling_style")) != style_key:
+                if not _bowling_style_matches(player.get("bowling_style"), style):
                     continue
             match = match_lookup.get(str(stat_row.get("match_id")))
             if not match:

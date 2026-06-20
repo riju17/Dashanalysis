@@ -112,6 +112,12 @@ export default function PlayersClient() {
   const runChart = dashboard?.top_run_scorers.map((player) => ({ name: player.player_name, value: player.runs })) || [];
   const wicketChart = dashboard?.top_wicket_takers.map((player) => ({ name: player.player_name, value: player.wickets })) || [];
 
+  const formatBowlingLabel = (label: string) => {
+    if (label === "runs_conceded") return "runs given";
+    if (label === "dot_balls") return "dot balls";
+    return label.replaceAll("_", " ");
+  };
+
   return (
     <AppShell title="Player Analysis" subtitle="Rank batters, bowlers, and all-rounders through impact-aware metrics." actionLabel="Reload" onAction={load}>
       {loading && <Loader />}
@@ -182,7 +188,7 @@ export default function PlayersClient() {
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     {Object.entries(playerAnalytics.bowling).map(([label, value]) => (
                       <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">{label.replaceAll("_", " ")}</p>
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">{formatBowlingLabel(label)}</p>
                         <p className="mt-1 text-base font-semibold text-white">{typeof value === "number" ? value.toFixed(2) : value}</p>
                       </div>
                     ))}

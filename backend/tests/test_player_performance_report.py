@@ -578,6 +578,155 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(report["overall_total"]["overs_balls"], 6)
         self.assertEqual(report["overall_total"]["overs"], 1.0)
 
+    def test_bowling_report_supports_spinner_subcategories(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        fast_bowler = store.insert(
+            "players",
+            {
+                "player_name": "Fast Bowler",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm medium fast",
+            },
+        )
+        leg_spinner = store.insert(
+            "players",
+            {
+                "player_name": "Leg Spinner",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm leg break",
+            },
+        )
+        off_spinner = store.insert(
+            "players",
+            {
+                "player_name": "Off Spinner",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Left-hand bat",
+                "bowling_style": "Left-arm orthodox spin",
+            },
+        )
+        chinaman = store.insert(
+            "players",
+            {
+                "player_name": "Chinaman",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Left-arm wrist spin",
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "spin-match-1",
+                "match_date": "2026-06-13",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 19,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+            },
+        )
+        for index, player in enumerate([fast_bowler, leg_spinner, off_spinner, chinaman], start=1):
+            store.insert(
+                "player_match_stats",
+                {
+                    "id": f"spin-stat-{index}",
+                    "match_id": "spin-match-1",
+                    "player_id": player["id"],
+                    "team_id": alpha["id"],
+                    "overs": 4.0,
+                    "maidens": 0,
+                    "runs_conceded": 16 + index,
+                    "wickets": 1,
+                    "dot_balls": 6 + index,
+                    "economy": 4.0 + index / 10,
+                    "runs": 0,
+                    "balls": 0,
+                    "fours": 0,
+                    "sixes": 0,
+                    "strike_rate": 0.0,
+                    "catches": 0,
+                    "runouts": 0,
+                    "stumpings": 0,
+                },
+            )
+
+        spinners_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Spinners",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual({row["player_name"] for row in spinners_report["rows"]}, {"Leg Spinner", "Off Spinner", "Chinaman"})
+        self.assertEqual(len(spinners_report["rows"]), 3)
+        self.assertNotIn("Fast Bowler", {row["player_name"] for row in spinners_report["rows"]})
+
+        leg_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Leg spinners",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(len(leg_report["rows"]), 1)
+        self.assertEqual(leg_report["rows"][0]["player_name"], "Leg Spinner")
+        self.assertEqual(leg_report["rows"][0]["bowling_style_code"], "RALS")
+
+        off_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Off spinners",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(len(off_report["rows"]), 1)
+        self.assertEqual(off_report["rows"][0]["player_name"], "Off Spinner")
+        self.assertEqual(off_report["rows"][0]["bowling_style_code"], "LAOS")
+
+        china_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="CM (china man)",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(len(china_report["rows"]), 1)
+        self.assertEqual(china_report["rows"][0]["player_name"], "Chinaman")
+        self.assertEqual(china_report["rows"][0]["bowling_style_code"], "LCM")
+
     def test_batting_report_supports_all_style_filter(self):
         alpha = store.insert(
             "teams",
@@ -842,6 +991,59 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(standings[0]["nrr"], "1.3956")
         self.assertEqual(standings[1]["team_name"], "Beta")
         self.assertEqual(standings[1]["nrr"], "-1.3956")
+
+    def test_player_summary_includes_bowling_runs_and_dot_balls(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        player = store.insert(
+            "players",
+            {
+                "player_name": "Alpha Bowler",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm fast",
+            },
+        )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-bowling-summary-1",
+                "match_id": "match-bowling-summary-1",
+                "player_id": player["id"],
+                "team_id": alpha["id"],
+                "overs": 4.0,
+                "maidens": 1,
+                "runs_conceded": 24,
+                "wickets": 2,
+                "dot_balls": 10,
+                "economy": 6.0,
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
+
+        summary = analytics_service.player_summary(str(player["id"]))
+
+        self.assertEqual(summary["bowling"]["runs_conceded"], 24)
+        self.assertEqual(summary["bowling"]["dot_balls"], 10)
+        self.assertEqual(summary["bowling"]["wickets"], 2)
+        self.assertEqual(summary["bowling"]["overs"], 4.0)
 
 
 if __name__ == "__main__":

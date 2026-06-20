@@ -252,7 +252,6 @@ export type StandingRow = {
   wins: number;
   losses: number;
   points: number;
-  nrr: string;
 };
 
 export const demoStandings: StandingRow[] = [];

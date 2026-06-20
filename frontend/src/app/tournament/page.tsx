@@ -36,10 +36,9 @@ export default function TournamentPage() {
       {error && !loading && <ErrorState message={error} onRetry={load} />}
       {!loading && !error && (
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {[
               ["Points leader", standings[0]?.team_name],
-              ["NRR placeholder", "Live"],
               ["Qualification probability", "Model ready"],
             ].map(([label, value]) => (
               <GlassCard key={label as string}>
@@ -60,7 +59,6 @@ export default function TournamentPage() {
                     <th className="px-3 py-2">Wins</th>
                     <th className="px-3 py-2">Losses</th>
                     <th className="px-3 py-2">Points</th>
-                    <th className="px-3 py-2">NRR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,7 +69,6 @@ export default function TournamentPage() {
                       <td className="px-3 py-3 text-slate-300">{row.wins}</td>
                       <td className="px-3 py-3 text-slate-300">{row.losses}</td>
                       <td className="px-3 py-3 text-slate-300">{row.points}</td>
-                      <td className="px-3 py-3 text-slate-300">{row.nrr}</td>
                     </tr>
                   ))}
                 </tbody>

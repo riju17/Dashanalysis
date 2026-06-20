@@ -29,6 +29,10 @@ export default function ReportsPage() {
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [reportMode, setReportMode] = useState<"batting" | "bowling">("bowling");
   const [selectedStyle, setSelectedStyle] = useState("");
+  const [bowlingFamily, setBowlingFamily] = useState("All");
+  const [bowlingFastStyle, setBowlingFastStyle] = useState("");
+  const [bowlingSpinnerGroup, setBowlingSpinnerGroup] = useState("");
+  const [bowlingSpinnerStyle, setBowlingSpinnerStyle] = useState("");
   const [matchReport, setMatchReport] = useState<any>(null);
   const [performanceReport, setPerformanceReport] = useState<PlayerPerformanceReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,8 +113,54 @@ export default function ReportsPage() {
     () => [
       { label: "All bowlers", value: "All" },
       { label: "Fast bowler", value: "Fast bowler" },
-      { label: "Spinner", value: "Spinner" },
+      { label: "Spinners", value: "Spinners" },
       { label: "Others", value: "Others" },
+    ],
+    [],
+  );
+
+  const fastBowlerStyleOptions = useMemo(
+    () => [
+      { label: "All fast bowlers", value: "" },
+      { label: "LAMF", value: "LAMF" },
+      { label: "RAMF", value: "RAMF" },
+    ],
+    [],
+  );
+
+  const spinnerGroupOptions = useMemo(
+    () => [
+      { label: "All spinners", value: "" },
+      { label: "Leg spinners", value: "Leg spinners" },
+      { label: "Off spinners", value: "Off spinners" },
+      { label: "CM (china man)", value: "CM (china man)" },
+    ],
+    [],
+  );
+
+  const legSpinnerOptions = useMemo(
+    () => [
+      { label: "All leg spinners", value: "" },
+      { label: "RALS", value: "RALS" },
+      { label: "LALS", value: "LALS" },
+    ],
+    [],
+  );
+
+  const offSpinnerOptions = useMemo(
+    () => [
+      { label: "All off spinners", value: "" },
+      { label: "RAOS", value: "RAOS" },
+      { label: "LAOS", value: "LAOS" },
+    ],
+    [],
+  );
+
+  const chinaManOptions = useMemo(
+    () => [
+      { label: "All CM bowlers", value: "" },
+      { label: "LCM", value: "LCM" },
+      { label: "RCM", value: "RCM" },
     ],
     [],
   );
@@ -128,6 +178,16 @@ export default function ReportsPage() {
     const remainingBalls = Math.max(0, balls || 0) % 6;
     return Number(`${wholeOvers}.${remainingBalls}`);
   };
+
+  const selectedBowlingStyle = useMemo(() => {
+    if (bowlingFamily === "Fast bowler") {
+      return bowlingFastStyle || "Fast bowler";
+    }
+    if (bowlingFamily === "Spinners") {
+      return bowlingSpinnerStyle || bowlingSpinnerGroup || "Spinners";
+    }
+    return bowlingFamily;
+  }, [bowlingFamily, bowlingFastStyle, bowlingSpinnerGroup, bowlingSpinnerStyle]);
 
   const normalizedPerformanceReport = useMemo(() => {
     if (!performanceReport) return null;
@@ -224,21 +284,14 @@ export default function ReportsPage() {
         : null,
     };
   }, [matches, performanceReport]);
-
   const performanceTeamTotals = normalizedPerformanceReport?.team_totals ?? [];
   const performanceOverallTotal = normalizedPerformanceReport?.overall_total ?? null;
 
-  const styleOptions = reportMode === "batting" ? battingStyleOptions : bowlingStyleOptions;
-
   useEffect(() => {
-    if (!styleOptions.length) {
-      setSelectedStyle("");
-      return;
+    if (reportMode === "batting" && battingStyleOptions.length > 0 && !battingStyleOptions.some((option) => option.value === selectedStyle)) {
+      setSelectedStyle(battingStyleOptions[0].value);
     }
-    if (!styleOptions.some((option) => option.value === selectedStyle)) {
-      setSelectedStyle(styleOptions[0].value);
-    }
-  }, [selectedStyle, styleOptions]);
+  }, [battingStyleOptions, reportMode, selectedStyle]);
 
   const createMatchReport = async () => {
     if (!selectedMatchId) return;
@@ -252,7 +305,8 @@ export default function ReportsPage() {
   };
 
   const createPerformanceReport = async () => {
-    if (!selectedStyle) return;
+    const effectiveStyle = reportMode === "batting" ? selectedStyle : selectedBowlingStyle;
+    if (!effectiveStyle) return;
     if (useVenueFilter && !selectedVenueId) {
       setPerformanceError("Please choose a venue before generating a venue-filtered report.");
       return;
@@ -268,7 +322,7 @@ export default function ReportsPage() {
         use_venue_filter: useVenueFilter,
         venue_id: useVenueFilter ? selectedVenueId : null,
         mode: reportMode,
-        style: selectedStyle,
+        style: effectiveStyle,
         team_ids: useTeamFilter ? selectedTeamIds : null,
       });
       setPerformanceReport(response);
@@ -440,17 +494,112 @@ export default function ReportsPage() {
                 <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-slate-400">
                   {reportMode === "batting" ? "Batting style" : "Bowling style"}
                 </span>
-                <select
-                  value={selectedStyle}
-                  onChange={(event) => setSelectedStyle(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
-                >
-                  {styleOptions.map((style) => (
-                    <option key={style.value} value={style.value}>
-                      {style.label}
-                    </option>
-                  ))}
-                </select>
+                {reportMode === "batting" ? (
+                  <select
+                    value={selectedStyle}
+                    onChange={(event) => setSelectedStyle(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                  >
+                    {battingStyleOptions.map((style) => (
+                      <option key={style.value} value={style.value}>
+                        {style.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="space-y-3">
+                    <select
+                      value={bowlingFamily}
+                      onChange={(event) => {
+                        const nextFamily = event.target.value;
+                        setBowlingFamily(nextFamily);
+                        setBowlingFastStyle("");
+                        setBowlingSpinnerGroup("");
+                        setBowlingSpinnerStyle("");
+                      }}
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                    >
+                      {bowlingStyleOptions.map((style) => (
+                        <option key={style.value} value={style.value}>
+                          {style.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {bowlingFamily === "Fast bowler" && (
+                      <select
+                        value={bowlingFastStyle}
+                        onChange={(event) => setBowlingFastStyle(event.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                      >
+                        {fastBowlerStyleOptions.map((style) => (
+                          <option key={style.label} value={style.value}>
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {bowlingFamily === "Spinners" && (
+                      <select
+                        value={bowlingSpinnerGroup}
+                        onChange={(event) => {
+                          setBowlingSpinnerGroup(event.target.value);
+                          setBowlingSpinnerStyle("");
+                        }}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                      >
+                        {spinnerGroupOptions.map((style) => (
+                          <option key={style.label} value={style.value}>
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "Leg spinners" && (
+                      <select
+                        value={bowlingSpinnerStyle}
+                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                      >
+                        {legSpinnerOptions.map((style) => (
+                          <option key={style.label} value={style.value}>
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "Off spinners" && (
+                      <select
+                        value={bowlingSpinnerStyle}
+                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                      >
+                        {offSpinnerOptions.map((style) => (
+                          <option key={style.label} value={style.value}>
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {bowlingFamily === "Spinners" && bowlingSpinnerGroup === "CM (china man)" && (
+                      <select
+                        value={bowlingSpinnerStyle}
+                        onChange={(event) => setBowlingSpinnerStyle(event.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50"
+                      >
+                        {chinaManOptions.map((style) => (
+                          <option key={style.label} value={style.value}>
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
               </label>
               <NeonButton loading={performanceWorking} onClick={createPerformanceReport}>
                 Generate performance report
@@ -536,7 +685,7 @@ export default function ReportsPage() {
                 : "Showing all venues."}{" "}
               {reportMode === "batting"
                 ? "Batting styles are pulled from the canonical player records. Use All batting styles to include everyone."
-                : "Bowling players are grouped into fast bowlers, spinners, or others. Use All bowlers to include everyone."}
+                : "Bowling players can be filtered by family first, then by fast-bowler or spinner sub-categories. Use All bowlers to include everyone."}
               {useTeamFilter && selectedTeamNames.length > 0
                 ? ` Teams: ${selectedTeamNames.join(", ")}.`
                 : " All teams are included."}
