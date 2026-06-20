@@ -18,6 +18,7 @@ class Settings(BaseModel):
     supabase_service_key: Optional[str] = None
     supabase_anon_key: Optional[str] = None
     allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    allowed_origin_regex: Optional[str] = Field(default=r"https://.*\.vercel\.app")
 
 
 @lru_cache(maxsize=1)
@@ -32,6 +33,7 @@ def get_settings() -> Settings:
         supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY"),
         supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
         allowed_origins=[origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()],
+        allowed_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX", r"https://.*\.vercel\.app"),
     )
 
 

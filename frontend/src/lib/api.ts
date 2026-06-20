@@ -31,7 +31,9 @@ function getDirectApiBaseUrl() {
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers || {});
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-  if (!isFormData && !headers.has("Content-Type")) {
+  const method = (init?.method || "GET").toUpperCase();
+  const shouldSendJsonContentType = method !== "GET" && method !== "HEAD";
+  if (!isFormData && shouldSendJsonContentType && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   return headers;
