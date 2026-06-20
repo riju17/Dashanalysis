@@ -110,7 +110,19 @@ def _bowling_style_code(style: Any) -> str:
     normalized = _normalize_report_value(style)
     if not normalized:
         return "OTHERS"
-    if normalized in {"ramf", "lamf", "raos", "las", "rals", "ramb", "lacm", "lamb"}:
+    if normalized in {
+        "ramf",
+        "lamf",
+        "raos",
+        "laos",
+        "rals",
+        "lals",
+        "lcm",
+        "rcm",
+        "las",
+        "ramb",
+        "lamb",
+    }:
         return normalized.upper()
 
     compact = normalized.replace("-", " ")

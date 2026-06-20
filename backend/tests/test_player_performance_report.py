@@ -850,6 +850,126 @@ class PlayerPerformanceReportTests(unittest.TestCase):
             report["summary"],
         )
 
+    def test_bowling_report_supports_compact_spinner_codes(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        compact_players = [
+            ("compact-left-arm", "Compact Left Arm", "LAOS"),
+            ("compact-leg-spin", "Compact Leg Spin", "LALS"),
+            ("compact-chinaman", "Compact Chinaman", "LCM"),
+            ("compact-off-spin", "Compact Off Spin", "RAOS"),
+        ]
+
+        for index, (player_id, name, bowling_style) in enumerate(compact_players, start=1):
+            player = store.insert(
+                "players",
+                {
+                    "id": player_id,
+                    "player_name": name,
+                    "team_id": alpha["id"],
+                    "role": "Bowler",
+                    "batting_style": "Right-hand bat",
+                    "bowling_style": bowling_style,
+                },
+            )
+            store.insert(
+                "matches",
+                {
+                    "id": f"compact-match-{index}",
+                    "match_date": f"2026-06-{index:02d}",
+                    "season": "2026",
+                    "tournament": "MPt20",
+                    "match_number": 30 + index,
+                    "team_a_id": alpha["id"],
+                    "team_b_id": beta["id"],
+                    "venue_id": holkar["id"],
+                },
+            )
+            store.insert(
+                "player_match_stats",
+                {
+                    "id": f"compact-stat-{index}",
+                    "match_id": f"compact-match-{index}",
+                    "player_id": player["id"],
+                    "team_id": alpha["id"],
+                    "overs": 4.0,
+                    "maidens": 0,
+                    "runs_conceded": 20 + index,
+                    "wickets": 1,
+                    "dot_balls": 10,
+                    "economy": 5.0,
+                    "runs": 0,
+                    "balls": 0,
+                    "fours": 0,
+                    "sixes": 0,
+                    "strike_rate": 0.0,
+                    "catches": 0,
+                    "runouts": 0,
+                    "stumpings": 0,
+                },
+            )
+
+        left_arm_spin_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Left arm spin",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(
+            {row["player_name"] for row in left_arm_spin_report["rows"]},
+            {"Compact Left Arm", "Compact Leg Spin"},
+        )
+
+        cm_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="CM",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(
+            {row["player_name"] for row in cm_report["rows"]},
+            {"Compact Chinaman"},
+        )
+
+        right_arm_off_spin_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Right arm off spin",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(
+            {row["player_name"] for row in right_arm_off_spin_report["rows"]},
+            {"Compact Off Spin"},
+        )
+
     def test_batting_report_supports_all_style_filter(self):
         alpha = store.insert(
             "teams",
