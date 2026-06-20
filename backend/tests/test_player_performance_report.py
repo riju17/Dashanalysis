@@ -750,6 +750,106 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(cm_report["rows"][0]["player_name"], "Chinaman")
         self.assertEqual(cm_report["rows"][0]["bowling_style_code"], "LCM")
 
+    def test_bowling_report_zero_results_include_style_diagnostics(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        right_arm_off_spinner = store.insert(
+            "players",
+            {
+                "player_name": "Right Arm Off Spinner",
+                "team_id": alpha["id"],
+                "role": "Bowler",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm offspin",
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "diag-match-1",
+                "match_date": "2026-06-13",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 20,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+            },
+        )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "diag-stat-1",
+                "match_id": "diag-match-1",
+                "player_id": right_arm_off_spinner["id"],
+                "team_id": alpha["id"],
+                "overs": 4.0,
+                "maidens": 0,
+                "runs_conceded": 19,
+                "wickets": 2,
+                "dot_balls": 11,
+                "economy": 4.75,
+                "runs": 0,
+                "balls": 0,
+                "fours": 0,
+                "sixes": 0,
+                "strike_rate": 0.0,
+                "catches": 0,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
+
+        report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Left arm spin",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+
+        self.assertEqual(report["rows"], [])
+        self.assertIn("0 players matched the selected bowling style.", report["summary"])
+        self.assertIn(
+            "Diagnostic: 'Left arm spin' maps to bowling style codes LALS, LAOS, LAS.",
+            report["summary"],
+        )
+        self.assertIn(
+            "Diagnostic: 1 bowling players remained after venue/team filters. Available codes: RAOS (1).",
+            report["summary"],
+        )
+        self.assertIn(
+            "Observed bowling_style values after filters: Right-arm offspin (1).",
+            report["summary"],
+        )
+
     def test_batting_report_supports_all_style_filter(self):
         alpha = store.insert(
             "teams",

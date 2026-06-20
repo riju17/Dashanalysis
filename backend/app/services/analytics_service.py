@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 import logging
 from typing import Any
@@ -70,12 +70,7 @@ def _bowling_style_matches(style: Any, selection: Any) -> bool:
     normalized_code = _normalize_report_value(player_code)
     fast_codes = {"ramf", "lamf", "ramb", "lamb"}
     spinner_codes = {"rals", "lals", "raos", "laos", "lcm", "rcm", "las"}
-    leg_spin_codes = {"rals", "lals"}
-    off_spin_codes = {"raos", "laos"}
-    right_arm_off_spin_codes = {"raos"}
-    right_arm_leg_spin_codes = {"rals"}
-    left_arm_spin_codes = {"laos", "lals", "las"}
-    china_man_codes = {"lcm", "rcm"}
+    selected_codes = _bowling_selection_codes(selection)
 
     if selected in {"fast bowler", "fast bowlers"}:
         return normalized_code in fast_codes
@@ -84,24 +79,31 @@ def _bowling_style_matches(style: Any, selection: Any) -> bool:
 
     if selected in {"spinner", "spinners", "all spinners", "all spinner"}:
         return normalized_code in spinner_codes
-    if selected in {"leg spinners", "leg spinner", "leg spin"}:
-        return normalized_code in leg_spin_codes
-    if selected in {"off spinners", "off spinner", "off spin"}:
-        return normalized_code in off_spin_codes
-    if selected in {"right arm off spin", "right-arm off spin"}:
-        return normalized_code in right_arm_off_spin_codes
-    if selected in {"right arm leg spin", "right-arm leg spin"}:
-        return normalized_code in right_arm_leg_spin_codes
-    if selected in {"left arm spin", "left-arm spin"}:
-        return normalized_code in left_arm_spin_codes
-    if selected in {"cm", "china man", "cm (china man)", "chinaman"}:
-        return normalized_code in china_man_codes
-    if selected in leg_spin_codes | off_spin_codes | china_man_codes:
+    if selected_codes:
+        return normalized_code in selected_codes
+    if selected in spinner_codes:
         return normalized_code == selected
 
     if selected == "others":
         return normalized_code == "others"
     return _normalize_report_value(_bowling_style_group(style)) == selected
+
+
+def _bowling_selection_codes(selection: Any) -> set[str]:
+    selected = _normalize_report_value(selection)
+    if selected in {"leg spinners", "leg spinner", "leg spin"}:
+        return {"rals", "lals"}
+    if selected in {"off spinners", "off spinner", "off spin"}:
+        return {"raos", "laos"}
+    if selected in {"right arm off spin", "right-arm off spin"}:
+        return {"raos"}
+    if selected in {"right arm leg spin", "right-arm leg spin"}:
+        return {"rals"}
+    if selected in {"left arm spin", "left-arm spin"}:
+        return {"laos", "lals", "las"}
+    if selected in {"cm", "china man", "cm (china man)", "chinaman"}:
+        return {"lcm", "rcm"}
+    return set()
 
 
 def _bowling_style_code(style: Any) -> str:
@@ -137,6 +139,24 @@ def _bowling_style_code(style: Any) -> str:
     if "spin" in compact:
         return "LAOS" if is_left else "RAOS"
     return "OTHERS"
+
+
+def _format_code_counts(counts: Counter[str]) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(
+        f"{code.upper()} ({count})"
+        for code, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    )
+
+
+def _format_style_counts(counts: Counter[str], limit: int = 5) -> str:
+    if not counts:
+        return "none"
+    ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    visible = ordered[:limit]
+    suffix = "" if len(ordered) <= limit else f", +{len(ordered) - limit} more"
+    return ", ".join(f"{style} ({count})" for style, count in visible) + suffix
 
 
 def _is_all_style_filter(style: Any) -> bool:
@@ -863,19 +883,15 @@ class AnalyticsService:
 
         filtered_rows: list[dict[str, Any]] = []
         included_match_ids: set[str] = set()
+        available_bowling_player_ids: set[str] = set()
+        available_bowling_codes: Counter[str] = Counter()
+        available_bowling_styles: Counter[str] = Counter()
         for stat_row in self._stats(context):
             player = player_lookup.get(str(stat_row.get("player_id")))
             if not player:
                 continue
             if selected_team_ids and str(player.get("team_id")) not in selected_team_ids:
                 continue
-            if mode == "batting" and not all_style:
-                player_style = player.get("batting_style")
-                if _normalize_report_value(player_style) != style_key:
-                    continue
-            elif mode == "bowling" and not all_style:
-                if not _bowling_style_matches(player.get("bowling_style"), style):
-                    continue
             match = match_lookup.get(str(stat_row.get("match_id")))
             if not match:
                 continue
@@ -885,6 +901,18 @@ class AnalyticsService:
                 continue
             if mode == "bowling" and not _has_bowling_contribution(stat_row):
                 continue
+            if mode == "batting" and not all_style:
+                player_style = player.get("batting_style")
+                if _normalize_report_value(player_style) != style_key:
+                    continue
+            elif mode == "bowling":
+                player_id = str(player.get("id"))
+                if player_id not in available_bowling_player_ids:
+                    available_bowling_player_ids.add(player_id)
+                    available_bowling_codes[_normalize_report_value(_bowling_style_code(player.get("bowling_style")))] += 1
+                    available_bowling_styles[" ".join(str(player.get("bowling_style") or "Unknown").split())] += 1
+                if not all_style and not _bowling_style_matches(player.get("bowling_style"), style):
+                    continue
             included_match_ids.add(str(match.get("id")))
 
             team = team_lookup.get(str(player.get("team_id"))) or {"id": player.get("team_id"), "team_name": "Unknown team"}
@@ -1096,6 +1124,22 @@ class AnalyticsService:
             f"{'Teams filtered to ' + team_filter_label if selected_team_ids else 'No team filter was applied.'}",
             "Names are returned from the canonical player, team, and venue tables.",
         ]
+        if mode == "bowling" and not all_style and not report_rows:
+            selected_codes = _bowling_selection_codes(style)
+            if selected_codes:
+                summary.append(
+                    "Diagnostic: "
+                    + f"'{style}' maps to bowling style codes {', '.join(sorted(code.upper() for code in selected_codes))}."
+                )
+            summary.append(
+                "Diagnostic: "
+                + f"{len(available_bowling_player_ids)} bowling players remained after venue/team filters. "
+                + f"Available codes: {_format_code_counts(available_bowling_codes)}."
+            )
+            summary.append(
+                "Observed bowling_style values after filters: "
+                + f"{_format_style_counts(available_bowling_styles)}."
+            )
         return {
             "report_title": report_title,
             "filters": {
