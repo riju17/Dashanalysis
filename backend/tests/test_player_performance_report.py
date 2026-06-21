@@ -1089,6 +1089,113 @@ class PlayerPerformanceReportTests(unittest.TestCase):
             {"Left Arm Wrist"},
         )
 
+    def test_bowling_report_supports_canonical_fast_style_string_selection(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        players = [
+            ("left-arm-medium-fast", "Left Arm Seamer", "Left-arm medium fast"),
+            ("right-arm-medium-fast", "Right Arm Seamer", "Right-arm medium fast"),
+        ]
+
+        for index, (player_id, name, bowling_style) in enumerate(players, start=1):
+            player = store.insert(
+                "players",
+                {
+                    "id": player_id,
+                    "player_name": name,
+                    "team_id": alpha["id"],
+                    "role": "Bowler",
+                    "batting_style": "Right-hand bat",
+                    "bowling_style": bowling_style,
+                },
+            )
+            store.insert(
+                "matches",
+                {
+                    "id": f"canonical-fast-match-{index}",
+                    "match_date": f"2026-06-1{index}",
+                    "season": "2026",
+                    "tournament": "MPt20",
+                    "match_number": 60 + index,
+                    "team_a_id": alpha["id"],
+                    "team_b_id": beta["id"],
+                    "venue_id": holkar["id"],
+                },
+            )
+            store.insert(
+                "player_match_stats",
+                {
+                    "id": f"canonical-fast-stat-{index}",
+                    "match_id": f"canonical-fast-match-{index}",
+                    "player_id": player["id"],
+                    "team_id": alpha["id"],
+                    "overs": 4.0,
+                    "maidens": 0,
+                    "runs_conceded": 22 + index,
+                    "wickets": 2,
+                    "dot_balls": 11,
+                    "economy": 5.5,
+                    "runs": 0,
+                    "balls": 0,
+                    "fours": 0,
+                    "sixes": 0,
+                    "strike_rate": 0.0,
+                    "catches": 0,
+                    "runouts": 0,
+                    "stumpings": 0,
+                },
+            )
+
+        left_arm_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Left-arm medium fast",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(
+            {row["player_name"] for row in left_arm_report["rows"]},
+            {"Left Arm Seamer"},
+        )
+
+        right_arm_report = analytics_service.player_performance_report(
+            mode="bowling",
+            style="Right-arm medium fast",
+            venue_id=str(holkar["id"]),
+            include_venue=True,
+        )
+        self.assertEqual(
+            {row["player_name"] for row in right_arm_report["rows"]},
+            {"Right Arm Seamer"},
+        )
+
     def test_batting_report_supports_batting_style_aliases(self):
         alpha = store.insert(
             "teams",

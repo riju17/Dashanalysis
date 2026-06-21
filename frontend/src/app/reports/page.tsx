@@ -121,8 +121,8 @@ export default function ReportsPage() {
   const fastBowlerStyleOptions = useMemo(
     () => [
       { label: "All fast bowlers", value: "" },
-      { label: "LAMF", value: "LAMF" },
-      { label: "RAMF", value: "RAMF" },
+      { label: "Left-arm medium fast", value: "Left-arm medium fast" },
+      { label: "Right-arm medium fast", value: "Right-arm medium fast" },
     ],
     [],
   );
