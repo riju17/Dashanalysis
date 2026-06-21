@@ -28,6 +28,39 @@ def _normalize_report_value(value: Any) -> str:
     return " ".join(str(value or "").split()).casefold()
 
 
+def _batting_style_code(style: Any) -> str:
+    normalized = _normalize_report_value(style)
+    if not normalized:
+        return "OTHERS"
+    compact = normalized.replace("-", " ")
+    if compact in {"lhb", "left hand bat", "left handed bat", "left hand batter", "left handed batter"}:
+        return "LHB"
+    if compact in {"rhb", "right hand bat", "right handed bat", "right hand batter", "right handed batter"}:
+        return "RHB"
+    if "left" in compact and ("bat" in compact or "batter" in compact):
+        return "LHB"
+    if "right" in compact and ("bat" in compact or "batter" in compact):
+        return "RHB"
+    return "OTHERS"
+
+
+def _batting_style_matches(style: Any, selection: Any) -> bool:
+    selected = _normalize_report_value(selection)
+    if not selected or selected in {
+        "all",
+        "all batting",
+        "all batting styles",
+        "all batting style",
+    }:
+        return True
+
+    player_code = _normalize_report_value(_batting_style_code(style))
+    selected_code = _normalize_report_value(_batting_style_code(selection))
+    if selected_code != "others":
+        return player_code == selected_code
+    return _normalize_report_value(style) == selected
+
+
 def _bowling_style_group(style: Any) -> str:
     normalized = _normalize_report_value(style)
     if not normalized:
@@ -83,6 +116,10 @@ def _bowling_style_matches(style: Any, selection: Any) -> bool:
         return normalized_code in selected_codes
     if selected in spinner_codes:
         return normalized_code == selected
+
+    selected_code = _normalize_report_value(_bowling_style_code(selection))
+    if selected_code != "others":
+        return normalized_code == selected_code
 
     if selected == "others":
         return normalized_code == "others"
@@ -895,6 +932,9 @@ class AnalyticsService:
 
         filtered_rows: list[dict[str, Any]] = []
         included_match_ids: set[str] = set()
+        available_batting_player_ids: set[str] = set()
+        available_batting_codes: Counter[str] = Counter()
+        available_batting_styles: Counter[str] = Counter()
         available_bowling_player_ids: set[str] = set()
         available_bowling_codes: Counter[str] = Counter()
         available_bowling_styles: Counter[str] = Counter()
@@ -913,11 +953,15 @@ class AnalyticsService:
                 continue
             if mode == "bowling" and not _has_bowling_contribution(stat_row):
                 continue
-            if mode == "batting" and not all_style:
-                player_style = player.get("batting_style")
-                if _normalize_report_value(player_style) != style_key:
+            if mode == "batting":
+                player_id = str(player.get("id"))
+                if player_id not in available_batting_player_ids:
+                    available_batting_player_ids.add(player_id)
+                    available_batting_codes[_normalize_report_value(_batting_style_code(player.get("batting_style")))] += 1
+                    available_batting_styles[" ".join(str(player.get("batting_style") or "Unknown").split())] += 1
+                if not all_style and not _batting_style_matches(player.get("batting_style"), style):
                     continue
-            elif mode == "bowling":
+            else:
                 player_id = str(player.get("id"))
                 if player_id not in available_bowling_player_ids:
                     available_bowling_player_ids.add(player_id)
@@ -1136,6 +1180,22 @@ class AnalyticsService:
             f"{'Teams filtered to ' + team_filter_label if selected_team_ids else 'No team filter was applied.'}",
             "Names are returned from the canonical player, team, and venue tables.",
         ]
+        if mode == "batting" and not all_style and not report_rows:
+            selected_code = _normalize_report_value(_batting_style_code(style))
+            if selected_code != "others":
+                summary.append(
+                    "Diagnostic: "
+                    + f"'{style}' maps to batting style code {selected_code.upper()}."
+                )
+            summary.append(
+                "Diagnostic: "
+                + f"{len(available_batting_player_ids)} batting players remained after venue/team filters. "
+                + f"Available codes: {_format_code_counts(available_batting_codes)}."
+            )
+            summary.append(
+                "Observed batting_style values after filters: "
+                + f"{_format_style_counts(available_batting_styles)}."
+            )
         if mode == "bowling" and not all_style and not report_rows:
             selected_codes = _bowling_selection_codes(style)
             if selected_codes:
