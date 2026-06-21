@@ -266,6 +266,21 @@ export default function ReportsPage() {
     }
   }, [battingStyleOptions, reportMode, selectedStyle]);
 
+  useEffect(() => {
+    setPerformanceReport(null);
+    setPerformanceError("");
+  }, [
+    useVenueFilter,
+    selectedVenueId,
+    useTeamFilter,
+    selectedTeamIds,
+    reportMode,
+    selectedStyle,
+    bowlingFamily,
+    bowlingFastStyle,
+    bowlingSpinnerGroup,
+  ]);
+
   const createMatchReport = async () => {
     if (!selectedMatchId) return;
     setMatchWorking(true);
