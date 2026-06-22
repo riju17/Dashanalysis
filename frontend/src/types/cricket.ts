@@ -119,6 +119,34 @@ export type PlayerAnalytics = {
   bowling: Record<string, number>;
   impact: Record<string, number>;
   insights: string[];
+  matchwise_performance: PlayerMatchPerformance[];
+};
+
+export type PlayerMatchPerformance = {
+  match_id: string;
+  match_number: number;
+  match_date?: string | null;
+  season?: string | null;
+  tournament?: string | null;
+  venue_name: string;
+  opponent_team_id?: string | null;
+  opponent_team_name: string;
+  batting_position?: number | null;
+  dismissal?: string | null;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  strike_rate: number;
+  overs: number;
+  maidens: number;
+  runs_conceded: number;
+  wickets: number;
+  dot_balls: number;
+  economy: number;
+  catches: number;
+  runouts: number;
+  stumpings: number;
 };
 
 export type VenueAnalytics = {

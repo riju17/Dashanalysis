@@ -446,6 +446,7 @@ class AnalyticsService:
             "bowling": {},
             "impact": {},
             "insights": ["Analytics temporarily unavailable."],
+            "matchwise_performance": [],
         }
 
     def _empty_venue_summary(self, venue: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -794,9 +795,12 @@ class AnalyticsService:
             return self._empty_team_summary(team)
 
     def player_summary(self, player_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
-        context = self._context(context, "players", "player_match_stats")
+        context = self._context(context, "players", "player_match_stats", "matches", "teams", "venues")
         try:
             player_lookup = self._player_lookup(context)
+            team_lookup = self._team_lookup(context)
+            venue_lookup = self._venue_lookup(context)
+            match_lookup = {str(match.get("id")): match for match in self._matches(context)}
             player = player_lookup.get(str(player_id)) or self.store.get("players", player_id)
             if not player:
                 return self._empty_player_summary(None)
@@ -804,6 +808,7 @@ class AnalyticsService:
             stats = [row for row in self._stats(context) if str(row.get("player_id")) == player_id]
             stats_df = pd.DataFrame(stats) if stats else pd.DataFrame()
             overs_balls = 0
+            matchwise_performance: list[dict[str, Any]] = []
             if stats_df.empty:
                 batting = {
                     "total_runs": 0,
@@ -856,6 +861,58 @@ class AnalyticsService:
                     "bowling_strike_impact": round((wickets * 25) + (dot_balls * 1.25), 2),
                     "pressure_bowling_score": round(bowling_impact(wickets, dot_balls, round(runs_conceded / overs, 2) if overs else 0.0), 2),
                 }
+                for row in stats:
+                    match_id = str(row.get("match_id") or "")
+                    match = match_lookup.get(match_id, {})
+                    player_team_id = str(row.get("team_id") or player.get("team_id") or "")
+                    team_a_id = str(match.get("team_a_id") or "")
+                    team_b_id = str(match.get("team_b_id") or "")
+                    opponent_team_id = team_b_id if player_team_id == team_a_id else team_a_id
+                    strike_rate_value = row.get("strike_rate")
+                    runs_value = int(row.get("runs") or 0)
+                    balls_value = int(row.get("balls") or 0)
+                    overs_value = float(row.get("overs") or 0)
+                    runs_conceded_value = int(row.get("runs_conceded") or 0)
+                    economy_value = row.get("economy")
+                    matchwise_performance.append(
+                        {
+                            "match_id": match_id,
+                            "match_number": int(match.get("match_number") or 0),
+                            "match_date": match.get("match_date"),
+                            "season": match.get("season"),
+                            "tournament": match.get("tournament"),
+                            "venue_name": venue_lookup.get(str(match.get("venue_id")), {}).get("venue_name", "Unknown venue"),
+                            "opponent_team_id": opponent_team_id or None,
+                            "opponent_team_name": team_lookup.get(opponent_team_id, {}).get("team_name", "Unknown opponent"),
+                            "batting_position": row.get("batting_position"),
+                            "dismissal": row.get("dismissal"),
+                            "runs": runs_value,
+                            "balls": balls_value,
+                            "fours": int(row.get("fours") or 0),
+                            "sixes": int(row.get("sixes") or 0),
+                            "strike_rate": round(float(strike_rate_value), 2)
+                            if strike_rate_value is not None
+                            else (round((runs_value / balls_value) * 100, 2) if balls_value else 0.0),
+                            "overs": overs_value,
+                            "maidens": int(row.get("maidens") or 0),
+                            "runs_conceded": runs_conceded_value,
+                            "wickets": int(row.get("wickets") or 0),
+                            "dot_balls": int(row.get("dot_balls") or 0),
+                            "economy": round(float(economy_value), 2)
+                            if economy_value is not None
+                            else (round(runs_conceded_value / overs_value, 2) if overs_value else 0.0),
+                            "catches": int(row.get("catches") or 0),
+                            "runouts": int(row.get("runouts") or 0),
+                            "stumpings": int(row.get("stumpings") or 0),
+                        }
+                    )
+                matchwise_performance.sort(
+                    key=lambda item: (
+                        str(item.get("match_date") or ""),
+                        int(item.get("match_number") or 0),
+                    ),
+                    reverse=True,
+                )
 
             impact = {
                 "batting_impact": round(
@@ -873,9 +930,16 @@ class AnalyticsService:
             }
             impact["all_rounder_index"] = round(all_rounder_index(impact["batting_impact"], impact["bowling_impact"]), 2)
             insights = self._player_insights_from_metrics(player, batting, bowling, impact)
-            return {"player": player, "batting": batting, "bowling": bowling, "impact": impact, "insights": insights}
+            return {
+                "player": player,
+                "batting": batting,
+                "bowling": bowling,
+                "impact": impact,
+                "insights": insights,
+                "matchwise_performance": matchwise_performance,
+            }
         except Exception:
-            logger.exception("Failed to build player analytics using tables: players, player_match_stats.")
+            logger.exception("Failed to build player analytics using tables: players, player_match_stats, matches, teams, venues.")
             player = self.store.get("players", player_id)
             return self._empty_player_summary(player)
 

@@ -1625,6 +1625,98 @@ class PlayerPerformanceReportTests(unittest.TestCase):
         self.assertEqual(summary["bowling"]["wickets"], 2)
         self.assertEqual(summary["bowling"]["overs"], 4.0)
 
+    def test_player_summary_includes_matchwise_performance(self):
+        alpha = store.insert(
+            "teams",
+            {
+                "team_name": "Alpha",
+                "short_name": "ALP",
+                "primary_color": "#111111",
+                "secondary_color": "#222222",
+                "accent_color": "#333333",
+                "logo_url": None,
+            },
+        )
+        beta = store.insert(
+            "teams",
+            {
+                "team_name": "Beta",
+                "short_name": "BET",
+                "primary_color": "#444444",
+                "secondary_color": "#555555",
+                "accent_color": "#666666",
+                "logo_url": None,
+            },
+        )
+        holkar = store.insert(
+            "venues",
+            {
+                "venue_name": "Holkar Stadium",
+                "city": "Indore",
+                "country": "India",
+            },
+        )
+        player = store.insert(
+            "players",
+            {
+                "player_name": "Alpha All-rounder",
+                "team_id": alpha["id"],
+                "role": "All-rounder",
+                "batting_style": "Right-hand bat",
+                "bowling_style": "Right-arm offbreak",
+            },
+        )
+        store.insert(
+            "matches",
+            {
+                "id": "match-player-summary-1",
+                "match_date": "2026-06-10",
+                "season": "2026",
+                "tournament": "MPt20",
+                "match_number": 9,
+                "team_a_id": alpha["id"],
+                "team_b_id": beta["id"],
+                "venue_id": holkar["id"],
+            },
+        )
+        store.insert(
+            "player_match_stats",
+            {
+                "id": "stat-player-summary-1",
+                "match_id": "match-player-summary-1",
+                "player_id": player["id"],
+                "team_id": alpha["id"],
+                "batting_position": 4,
+                "dismissal": "c Keeper b Spinner",
+                "runs": 48,
+                "balls": 29,
+                "fours": 5,
+                "sixes": 2,
+                "strike_rate": 165.52,
+                "overs": 4.0,
+                "maidens": 0,
+                "runs_conceded": 26,
+                "wickets": 3,
+                "dot_balls": 11,
+                "economy": 6.5,
+                "catches": 1,
+                "runouts": 0,
+                "stumpings": 0,
+            },
+        )
+
+        summary = analytics_service.player_summary(str(player["id"]))
+
+        self.assertEqual(len(summary["matchwise_performance"]), 1)
+        match_row = summary["matchwise_performance"][0]
+        self.assertEqual(match_row["match_number"], 9)
+        self.assertEqual(match_row["opponent_team_name"], "Beta")
+        self.assertEqual(match_row["venue_name"], "Holkar Stadium")
+        self.assertEqual(match_row["runs"], 48)
+        self.assertEqual(match_row["wickets"], 3)
+        self.assertEqual(match_row["catches"], 1)
+        self.assertEqual(match_row["dismissal"], "c Keeper b Spinner")
+
 
 if __name__ == "__main__":
     unittest.main()

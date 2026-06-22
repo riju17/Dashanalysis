@@ -271,6 +271,7 @@ class PlayerAnalyticsResponse(BaseModel):
     bowling: dict[str, Any]
     impact: dict[str, Any]
     insights: list[str]
+    matchwise_performance: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class VenueAnalyticsResponse(BaseModel):
