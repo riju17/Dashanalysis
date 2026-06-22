@@ -189,6 +189,7 @@ export const demoPlayerAnalytics: PlayerAnalytics = {
     all_rounder_index: 0,
   },
   insights: ["No match samples are available yet for this player."],
+  matchwise_performance: [],
 };
 
 export const demoVenueAnalytics: VenueAnalytics = {
