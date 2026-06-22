@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import require_role
 from app.data.store import store
-from app.models.schemas import PlayerCreate, PlayerResponse
+from app.models.schemas import PlayerAnalyticsResponse, PlayerCreate, PlayerResponse
 from app.services.analytics_service import analytics_service
 from app.services.validation_service import validate_player_payload
 
@@ -36,6 +36,6 @@ def get_player(player_id: str):
     return player
 
 
-@router.get("/{player_id}/analytics")
+@router.get("/{player_id}/analytics", response_model=PlayerAnalyticsResponse)
 def player_analytics(player_id: str):
     return analytics_service.player_summary(player_id)

@@ -118,6 +118,89 @@ async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
   throw lastError instanceof Error ? lastError : new Error("Request failed.");
 }
 
+function normalizePlayerAnalytics(payload: unknown): PlayerAnalytics {
+  const candidate = (payload && typeof payload === "object" ? payload : {}) as Partial<PlayerAnalytics>;
+
+  return {
+    player: candidate.player ?? {
+      id: "",
+      player_name: "Unknown player",
+      team_id: "",
+    },
+    batting: candidate.batting ?? {
+      total_runs: 0,
+      total_balls: 0,
+      batting_strike_rate: 0,
+      average_runs_per_match: 0,
+      fours: 0,
+      sixes: 0,
+      boundary_percentage: 0,
+      finishing_score: 0,
+    },
+    bowling: candidate.bowling ?? {
+      overs: 0,
+      wickets: 0,
+      economy: 0,
+      runs_conceded: 0,
+      dot_balls: 0,
+      dot_ball_percentage: 0,
+      bowling_strike_impact: 0,
+      pressure_bowling_score: 0,
+    },
+    impact: candidate.impact ?? {
+      batting_impact: 0,
+      bowling_impact: 0,
+      all_rounder_index: 0,
+    },
+    insights: Array.isArray(candidate.insights) ? candidate.insights : [],
+    matchwise_performance: Array.isArray(candidate.matchwise_performance) ? candidate.matchwise_performance : [],
+  };
+}
+
+function scorePlayerAnalytics(candidate: PlayerAnalytics) {
+  const hasMatchwiseRows = candidate.matchwise_performance.length > 0;
+  const hasAggregateActivity =
+    candidate.batting.total_runs > 0 ||
+    candidate.batting.total_balls > 0 ||
+    candidate.bowling.overs > 0 ||
+    candidate.bowling.wickets > 0 ||
+    candidate.bowling.runs_conceded > 0;
+
+  return (hasMatchwiseRows ? 10 : 0) + (hasAggregateActivity ? 1 : 0);
+}
+
+async function getPlayerAnalytics(path: string): Promise<PlayerAnalytics> {
+  const headers = buildHeaders();
+  let lastError: unknown = null;
+  let bestCandidate: PlayerAnalytics | null = null;
+  let bestScore = -1;
+
+  for (const url of getFallbackTargets(path)) {
+    try {
+      const payload = await requestOnce<unknown>(url, { headers });
+      const normalized = normalizePlayerAnalytics(payload);
+      const score = scorePlayerAnalytics(normalized);
+
+      if (score > bestScore) {
+        bestCandidate = normalized;
+        bestScore = score;
+      }
+
+      if (normalized.matchwise_performance.length > 0) {
+        return normalized;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (bestCandidate) {
+    return bestCandidate;
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed.");
+}
+
 export const api = {
   getDashboard: () => request<DashboardData>("/analytics/dashboard"),
   getTeams: () => request<Team[]>("/teams"),
@@ -126,7 +209,7 @@ export const api = {
   getVenue: (venueId: string) => request<VenueAnalytics>(`/analytics/venue/${venueId}`),
   getPlayers: () => request<Player[]>("/players"),
   getPlayersByTeam: (teamId: string) => request<Player[]>(`/players/team/${teamId}`),
-  getPlayer: (playerId: string) => request<PlayerAnalytics>(`/analytics/player/${playerId}`),
+  getPlayer: (playerId: string) => getPlayerAnalytics(`/analytics/player/${playerId}`),
   getTossAnalytics: () => request<TossAnalytics>("/analytics/toss"),
   getMatches: () => request<MatchRecord[]>("/matches"),
   getMatch: (matchId: string) => request<MatchRecord>(`/matches/${matchId}`),

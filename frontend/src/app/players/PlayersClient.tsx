@@ -59,6 +59,17 @@ export default function PlayersClient() {
       ),
     [playerAnalytics],
   );
+  const missingMatchwisePerformance = useMemo(() => {
+    if (!playerAnalytics) return false;
+    const hasAggregateActivity =
+      playerAnalytics.batting.total_runs > 0 ||
+      playerAnalytics.batting.total_balls > 0 ||
+      playerAnalytics.bowling.overs > 0 ||
+      playerAnalytics.bowling.wickets > 0 ||
+      playerAnalytics.bowling.runs_conceded > 0;
+
+    return hasAggregateActivity && battingMatches.length === 0 && bowlingMatches.length === 0;
+  }, [battingMatches.length, bowlingMatches.length, playerAnalytics]);
 
   const loadPlayerAnalytics = async (playerId: string) => {
     const requestId = ++playerRequestId.current;
@@ -362,6 +373,18 @@ export default function PlayersClient() {
                 <PlayerRankingChart title="Top Run Scorers" data={runChart} />
                 <PlayerRankingChart title="Top Wicket Takers" data={wicketChart} />
               </div>
+              {missingMatchwisePerformance ? (
+                <GlassCard className="border-amber-400/30 bg-amber-500/10">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-amber-100">Matchwise stats unavailable from deployed API</h3>
+                    <p className="text-sm text-amber-50/80">
+                      Aggregate batting and bowling totals are present, but the API response for this player does not
+                      include the per-match `matchwise_performance` rows yet. This usually means the deployed backend
+                      is older than the current frontend code or the frontend is reading a stale backend target.
+                    </p>
+                  </div>
+                </GlassCard>
+              ) : null}
               <div className="grid gap-4 xl:grid-cols-2">
                 <GlassCard>
                   <div className="flex items-center justify-between gap-3">

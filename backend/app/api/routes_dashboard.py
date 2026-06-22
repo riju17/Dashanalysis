@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter
 
+from app.models.schemas import PlayerAnalyticsResponse
 from app.services.insights_service import insights_service
 from app.services.analytics_service import analytics_service
 
@@ -31,7 +32,7 @@ def team_dashboard(team_id: str):
     return analytics_service.team_summary(team_id)
 
 
-@router.get("/player/{player_id}")
+@router.get("/player/{player_id}", response_model=PlayerAnalyticsResponse)
 def player_dashboard(player_id: str):
     return analytics_service.player_summary(player_id)
 
