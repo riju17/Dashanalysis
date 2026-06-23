@@ -9,7 +9,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { WinProbabilityCard } from "@/components/cards/WinProbabilityCard";
 import { getTeamTheme } from "@/config/teamThemes";
-import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { PredictionInput, PredictionOutput, Team, Venue } from "@/types/cricket";
 
 const initialInput: PredictionInput = {
@@ -129,7 +128,7 @@ export default function PredictionPage() {
         </div>
       )}
       {!loading && !error && !output && (
-        <EmptyState title="No prediction ready" description="Add teams and venue data to generate win probability estimates." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
+        <EmptyState title="No prediction ready" description="Add teams and venue data to generate win probability estimates." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
       )}
     </AppShell>
   );

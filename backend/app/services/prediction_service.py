@@ -19,9 +19,8 @@ class PredictionService:
         toss_winner_id: Optional[str] = None,
         toss_decision: Optional[str] = None,
         bat_first_team_id: Optional[str] = None,
-        context: dict[str, list[dict[str, Any]]] | None = None,
     ) -> dict[str, Any]:
-        context = context or self.analytics.store.snapshot(["teams", "venues", "matches", "player_match_stats"])
+        context = self.analytics.store.snapshot(["teams", "venues", "matches", "player_match_stats"])
         team_a = self.analytics.team_summary(team_a_id, context=context)
         team_b = self.analytics.team_summary(team_b_id, context=context)
         venue = self.analytics.venue_summary(venue_id, context=context)

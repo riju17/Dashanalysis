@@ -17,10 +17,6 @@ class Settings(BaseModel):
     supabase_url: Optional[str] = None
     supabase_service_key: Optional[str] = None
     supabase_anon_key: Optional[str] = None
-    enable_local_dev_auth: bool = False
-    local_dev_user_id: str = Field(default="00000000-0000-0000-0000-000000000001")
-    local_dev_user_email: str = Field(default="local-admin@statstrike.local")
-    platform_owner_ids: List[str] = Field(default_factory=list)
     allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     allowed_origin_regex: Optional[str] = Field(default=r"https://.*\.vercel\.app")
 
@@ -36,10 +32,6 @@ def get_settings() -> Settings:
         supabase_url=os.getenv("SUPABASE_URL"),
         supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY"),
         supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
-        enable_local_dev_auth=os.getenv("ENABLE_LOCAL_DEV_AUTH", "false").strip().lower() == "true",
-        local_dev_user_id=os.getenv("LOCAL_DEV_USER_ID", "00000000-0000-0000-0000-000000000001"),
-        local_dev_user_email=os.getenv("LOCAL_DEV_USER_EMAIL", "local-admin@statstrike.local"),
-        platform_owner_ids=[value.strip() for value in os.getenv("PLATFORM_OWNER_IDS", "").split(",") if value.strip()],
         allowed_origins=[origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()],
         allowed_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX", r"https://.*\.vercel\.app"),
     )

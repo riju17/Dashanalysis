@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Loader } from "@/components/ui/Loader";
-import { getBrowserTournamentPath } from "@/lib/tournament";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NeonButton } from "@/components/ui/NeonButton";
@@ -537,7 +536,7 @@ export default function PlayersClient() {
         </div>
       )}
       {!loading && !error && players.length === 0 && (
-        <EmptyState title="No player data" description="Player impact analysis appears once the database has players and match stats." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
+        <EmptyState title="No player data" description="Player impact analysis appears once the database has players and match stats." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
       )}
     </AppShell>
   );

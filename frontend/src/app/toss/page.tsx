@@ -7,7 +7,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Loader } from "@/components/ui/Loader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { TossAnalytics } from "@/types/cricket";
 
 export default function TossPage() {
@@ -87,7 +86,7 @@ export default function TossPage() {
         </div>
       )}
       {!loading && !error && !data && (
-        <EmptyState title="No toss data" description="Toss analysis will appear after completed matches are entered." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
+        <EmptyState title="No toss data" description="Toss analysis will appear after completed matches are entered." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
       )}
     </AppShell>
   );

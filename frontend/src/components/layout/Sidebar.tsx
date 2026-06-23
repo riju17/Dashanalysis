@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Orbit } from "lucide-react";
-import { getNavItems } from "@/config/navItems";
-import { resolveTournamentSlug } from "@/lib/tournament";
+import { navItems } from "@/config/navItems";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {
@@ -15,8 +14,6 @@ type SidebarProps = {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const tournamentSlug = resolveTournamentSlug(pathname);
-  const navItems = getNavItems(tournamentSlug);
 
   return (
     <aside
@@ -47,7 +44,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <nav className="mt-6 flex-1 space-y-1 overflow-y-auto pb-4">
         {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = pathname === item.href;
           const Icon = item.icon;
           return (
             <Link

@@ -31,7 +31,6 @@ class TeamUpdate(BaseModel):
 
 class TeamResponse(TeamBase):
     id: UUID
-    tournament_id: UUID
     created_at: datetime
 
 
@@ -47,7 +46,6 @@ class VenueCreate(VenueBase):
 
 class VenueResponse(VenueBase):
     id: UUID
-    tournament_id: UUID
     created_at: datetime
 
 
@@ -65,7 +63,6 @@ class PlayerCreate(PlayerBase):
 
 class PlayerResponse(PlayerBase):
     id: UUID
-    tournament_id: UUID
     created_at: datetime
 
 
@@ -102,7 +99,6 @@ class MatchCreate(MatchBase):
 
 class MatchResponse(MatchBase):
     id: UUID
-    tournament_id: UUID
     created_at: datetime
 
 
@@ -134,98 +130,19 @@ class PlayerMatchStatCreate(PlayerMatchStatBase):
 
 class PlayerMatchStatResponse(PlayerMatchStatBase):
     id: UUID
-    tournament_id: UUID
     created_at: datetime
 
 
 class TournamentBase(BaseModel):
-    name: str
-    slug: str
+    tournament_name: str
     season: str
-    description: Optional[str] = None
-    logo_url: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    is_active: bool = True
-
-
-class TournamentCreate(TournamentBase):
-    pass
-
-
-class TournamentUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
-    season: Optional[str] = None
-    description: Optional[str] = None
-    logo_url: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    is_active: Optional[bool] = None
 
 
 class TournamentResponse(TournamentBase):
     id: UUID
-    created_by: Optional[UUID] = None
     created_at: datetime
-
-
-class UserTournamentAccessResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    tournament_id: UUID
-    role: Literal["owner", "admin", "analyst", "viewer"]
-    access_expires_at: Optional[datetime] = None
-    is_active: bool
-    created_at: datetime
-    email: Optional[str] = None
-
-
-class AccessKeyCreateRequest(BaseModel):
-    tournament_id: UUID
-    role: Literal["owner", "admin", "analyst", "viewer"]
-    expires_at: datetime
-    access_duration_days: Optional[int] = None
-    max_uses: int = 1
-
-
-class AccessKeyResponse(BaseModel):
-    id: UUID
-    tournament_id: UUID
-    role: Literal["owner", "admin", "analyst", "viewer"]
-    expires_at: datetime
-    access_duration_days: Optional[int] = None
-    max_uses: int
-    used_count: int
-    is_active: bool
-    created_by: Optional[UUID] = None
-    created_at: datetime
-
-
-class AccessKeyCreateResponse(BaseModel):
-    key: str
-    record: AccessKeyResponse
-
-
-class AccessKeyRedemptionRequest(BaseModel):
-    access_key: str
-
-
-class AccessKeyRedemptionResponse(BaseModel):
-    tournament: TournamentResponse
-    access: UserTournamentAccessResponse
-
-
-class UserAccessSummaryResponse(BaseModel):
-    user_id: UUID
-    email: Optional[str] = None
-    tournaments: list[UserTournamentAccessResponse]
-
-
-class TournamentAccessUpdateRequest(BaseModel):
-    role: Optional[Literal["owner", "admin", "analyst", "viewer"]] = None
-    access_expires_at: Optional[datetime] = None
-    is_active: Optional[bool] = None
 
 
 class ReportResponse(BaseModel):
@@ -338,16 +255,6 @@ class DashboardResponse(BaseModel):
   team_win_percentage_chart: list[dict[str, Any]]
   venue_score_chart: list[dict[str, Any]]
   summary_points: list[str]
-
-
-class StandingRow(BaseModel):
-    team_id: str
-    team_name: str
-    played: int
-    wins: int
-    losses: int
-    points: int
-    nrr: Optional[str] = None
 
 
 class TeamAnalyticsResponse(BaseModel):

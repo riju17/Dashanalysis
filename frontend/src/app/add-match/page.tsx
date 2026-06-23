@@ -8,7 +8,6 @@ import { MatchEntryForm } from "@/components/forms/MatchEntryForm";
 import { AutoMatchImportForm } from "@/components/forms/AutoMatchImportForm";
 import { Loader } from "@/components/ui/Loader";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { Player, Team, Venue } from "@/types/cricket";
 
 export default function AddMatchPage() {
@@ -69,7 +68,7 @@ export default function AddMatchPage() {
       {loading && <Loader />}
       {error && !loading && <ErrorState message={error} onRetry={load} />}
       {!loading && !error && mode === "manual" && (
-        <MatchEntryForm teams={teams} venues={venues} players={players} onSubmitted={(match) => router.push(getBrowserTournamentPath(`/matches/${match.id}`))} />
+        <MatchEntryForm teams={teams} venues={venues} players={players} onSubmitted={(match) => router.push(`/matches/${match.id}`)} />
       )}
       {!loading && !error && mode === "auto" && <AutoMatchImportForm teams={teams} venues={venues} players={players} />}
     </AppShell>

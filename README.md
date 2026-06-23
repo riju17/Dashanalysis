@@ -253,5 +253,3 @@ Placeholders for these modules live in `backend/app/future/`.
 - The backend also ships with an in-memory sample store so the API works locally even before connecting to Supabase.
 - This MVP is structured for extension, not just for demo screenshots.
 # Dashanalysis
-# sample-
-# statanalysis
