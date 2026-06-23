@@ -1,14 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes_dashboard import router as dashboard_router
-from app.api.routes_matches import router as matches_router
-from app.api.routes_imports import router as imports_router
-from app.api.routes_players import router as players_router
-from app.api.routes_predictions import router as predictions_router
+from app.api.routes_access import router as access_router
+from app.api.routes_admin import router as admin_router
 from app.api.routes_reports import router as reports_router
-from app.api.routes_teams import router as teams_router
-from app.api.routes_venues import router as venues_router
+from app.api.routes_tournament_scoped import router as tournament_scoped_router
+from app.api.routes_tournaments import router as tournaments_router
 from app.core.config import settings
 
 app = FastAPI()
@@ -42,11 +39,8 @@ def health_check():
     }
 
 
-app.include_router(teams_router, prefix="/teams", tags=["Teams"])
-app.include_router(venues_router, prefix="/venues", tags=["Venues"])
-app.include_router(players_router, prefix="/players", tags=["Players"])
-app.include_router(matches_router, prefix="/matches", tags=["Matches"])
-app.include_router(imports_router, prefix="/imports", tags=["Imports"])
-app.include_router(dashboard_router, prefix="/analytics", tags=["Analytics"])
-app.include_router(predictions_router, prefix="/prediction", tags=["Prediction"])
+app.include_router(tournaments_router, prefix="/tournaments", tags=["Tournaments"])
+app.include_router(tournament_scoped_router, tags=["Tournament Scoped"])
+app.include_router(access_router, tags=["Access"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(reports_router, prefix="/reports", tags=["Reports"])

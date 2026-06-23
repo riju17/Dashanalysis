@@ -1,4 +1,8 @@
 import type {
+  AccessKeyCreatePayload,
+  AccessKeyCreateResult,
+  AccessKeyRecord,
+  AccessKeyRedemptionResult,
   ImportConfirmPayload,
   ImportConfirmResult,
   DashboardData,
@@ -16,11 +20,16 @@ import type {
   ReportRecord,
   Team,
   TeamAnalytics,
+  TournamentAccessRecord,
+  TournamentRecord,
   TossAnalytics,
+  UserAccessSummary,
   Venue,
   VenueAnalytics,
   StandingRow,
 } from "@/types/cricket";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { resolveTournamentSlug } from "@/lib/tournament";
 
 const API_BASE_PATH = "/api/backend";
 
@@ -28,7 +37,26 @@ function getDirectApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 }
 
-function buildHeaders(init?: RequestInit) {
+function getTournamentScopedPath(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const unscopedPrefixes = ["/tournaments", "/admin", "/access", "/me", "/reports/export"];
+  if (unscopedPrefixes.some((prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`))) {
+    return normalizedPath;
+  }
+
+  const tournamentSlug =
+    typeof window === "undefined"
+      ? null
+      : resolveTournamentSlug(window.location.pathname);
+
+  if (!tournamentSlug || normalizedPath.startsWith("/tournament/")) {
+    return normalizedPath;
+  }
+
+  return `/tournaments/${tournamentSlug}${normalizedPath}`;
+}
+
+async function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers || {});
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const method = (init?.method || "GET").toUpperCase();
@@ -36,14 +64,33 @@ function buildHeaders(init?: RequestInit) {
   if (!isFormData && shouldSendJsonContentType && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+
+  if (typeof window !== "undefined") {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        return headers;
+      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.access_token && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${session.access_token}`);
+      }
+    } catch {
+      // Let the backend respond naturally if auth bootstrap is unavailable.
+    }
+  }
+
   return headers;
 }
 
 function getFallbackTargets(path: string) {
-  const targets = [`${API_BASE_PATH}${path}`];
+  const scopedPath = getTournamentScopedPath(path);
+  const targets = [`${API_BASE_PATH}${scopedPath}`];
   const directApiBaseUrl = getDirectApiBaseUrl();
   if (directApiBaseUrl) {
-    targets.push(`${directApiBaseUrl}${path}`);
+    targets.push(`${directApiBaseUrl}${scopedPath}`);
   }
   return targets;
 }
@@ -71,7 +118,7 @@ async function requestOnce<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = buildHeaders(init);
+  const headers = await buildHeaders(init);
   let lastError: unknown = null;
 
   for (const url of getFallbackTargets(path)) {
@@ -86,7 +133,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
-  const headers = buildHeaders(init);
+  const headers = await buildHeaders(init);
   let lastError: unknown = null;
 
   for (const url of getFallbackTargets(path)) {
@@ -170,7 +217,7 @@ function scorePlayerAnalytics(candidate: PlayerAnalytics) {
 }
 
 async function getPlayerAnalytics(path: string): Promise<PlayerAnalytics> {
-  const headers = buildHeaders();
+  const headers = await buildHeaders();
   let lastError: unknown = null;
   let bestCandidate: PlayerAnalytics | null = null;
   let bestScore = -1;
@@ -202,6 +249,14 @@ async function getPlayerAnalytics(path: string): Promise<PlayerAnalytics> {
 }
 
 export const api = {
+  getTournaments: () => request<TournamentRecord[]>("/tournaments"),
+  getTournament: (slug: string) => request<TournamentRecord>(`/tournaments/${slug}`),
+  getMyAccess: () => request<UserAccessSummary>("/me/access"),
+  redeemAccessKey: (accessKey: string) =>
+    request<AccessKeyRedemptionResult>("/access/redeem", {
+      method: "POST",
+      body: JSON.stringify({ access_key: accessKey }),
+    }),
   getDashboard: () => request<DashboardData>("/analytics/dashboard"),
   getTeams: () => request<Team[]>("/teams"),
   getTeam: (teamId: string) => request<TeamAnalytics>(`/analytics/team/${teamId}`),
@@ -290,6 +345,37 @@ export const api = {
       },
     ),
   getReports: () => request<ReportRecord[]>("/reports"),
+  createTournament: (payload: Partial<TournamentRecord> & Pick<TournamentRecord, "name" | "slug" | "season">) =>
+    request<TournamentRecord>("/admin/tournaments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateTournament: (tournamentId: string, payload: Partial<TournamentRecord>) =>
+    request<TournamentRecord>(`/admin/tournaments/${tournamentId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  getTournamentAccess: (slug: string) => request<TournamentAccessRecord[]>(`/admin/tournaments/${slug}/access`),
+  updateTournamentAccess: (slug: string, accessId: string, payload: Partial<TournamentAccessRecord>) =>
+    request<TournamentAccessRecord>(`/admin/tournaments/${slug}/access/${accessId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  revokeTournamentAccess: (slug: string, accessId: string) =>
+    request<TournamentAccessRecord>(`/admin/tournaments/${slug}/access/${accessId}`, {
+      method: "DELETE",
+    }),
+  createAccessKey: (payload: AccessKeyCreatePayload) =>
+    request<AccessKeyCreateResult>("/admin/access-keys", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  listAccessKeys: (tournamentId: string) =>
+    request<AccessKeyRecord[]>(`/admin/access-keys?tournament_id=${encodeURIComponent(tournamentId)}`),
+  disableAccessKey: (accessKeyId: string) =>
+    request<AccessKeyRecord>(`/admin/access-keys/${accessKeyId}/disable`, {
+      method: "PUT",
+    }),
   getOpponentStrategy: (ourTeamId: string, opponentTeamId: string, venueId: string) =>
     request(`/analytics/opponent-strategy/${ourTeamId}/${opponentTeamId}/${venueId}`),
 };

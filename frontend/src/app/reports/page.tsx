@@ -8,6 +8,7 @@ import { Loader } from "@/components/ui/Loader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type {
   MatchRecord,
   Player,
@@ -401,7 +402,7 @@ export default function ReportsPage() {
               {selectedMatchId && (
                 <button
                   type="button"
-                  onClick={() => window.location.assign(`/matches/${selectedMatchId}`)}
+                  onClick={() => window.location.assign(getBrowserTournamentPath(`/matches/${selectedMatchId}`))}
                   className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
                 >
                   View match
@@ -885,7 +886,7 @@ export default function ReportsPage() {
         </div>
       )}
       {!loading && !error && matches.length === 0 && (
-        <EmptyState title="No reports available" description="Generate a match report after entering completed matches." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
+        <EmptyState title="No reports available" description="Generate a match report after entering completed matches." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
       )}
     </AppShell>
   );

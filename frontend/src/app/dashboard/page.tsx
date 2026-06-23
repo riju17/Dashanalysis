@@ -13,6 +13,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Loader } from "@/components/ui/Loader";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { DashboardData } from "@/types/cricket";
 
 const neutralDashboardTheme = {
@@ -164,7 +165,7 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {!loading && !error && !data && <EmptyState title="No data yet" description="The analytics layer has no completed matches to analyse." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />}
+      {!loading && !error && !data && <EmptyState title="No data yet" description="The analytics layer has no completed matches to analyse." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />}
     </AppShell>
   );
 }

@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Loader } from "@/components/ui/Loader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { StandingRow } from "@/types/cricket";
 
 export default function TournamentPage() {
@@ -85,7 +86,7 @@ export default function TournamentPage() {
         </div>
       )}
       {!loading && !error && standings.length === 0 && (
-        <EmptyState title="No tournament data" description="Seed matches to populate the tournament dashboard and points table." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
+        <EmptyState title="No tournament data" description="Seed matches to populate the tournament dashboard and points table." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
       )}
     </AppShell>
   );

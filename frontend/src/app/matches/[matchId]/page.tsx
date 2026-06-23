@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { WinProbabilityCard } from "@/components/cards/WinProbabilityCard";
 import { getTeamTheme } from "@/config/teamThemes";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { MatchImportRecord, MatchPlayerStatRecord, MatchRecord, Player, ReportRecord, Team, Venue } from "@/types/cricket";
 
 type MatchSectionRow = MatchPlayerStatRecord & {
@@ -166,7 +167,7 @@ export default function MatchDetailPage() {
       title="Match Detail"
       subtitle="Single-match review with scorecard, innings breakdown, player stats, and generated intelligence."
       actionLabel="Back to data manager"
-      onAction={() => router.push("/data-manager")}
+      onAction={() => router.push(getBrowserTournamentPath("/data-manager"))}
     >
       {loading && <Loader label="Loading match detail..." />}
       {error && !loading && <ErrorState message={error} onRetry={load} />}
@@ -175,7 +176,7 @@ export default function MatchDetailPage() {
           title="Match not found"
           description="This match record does not exist yet or was deleted."
           actionLabel="Go to data manager"
-          onAction={() => router.push("/data-manager")}
+          onAction={() => router.push(getBrowserTournamentPath("/data-manager"))}
         />
       )}
 
@@ -204,10 +205,10 @@ export default function MatchDetailPage() {
                     <NeonButton className="bg-white/10" onClick={generateReport} loading={working}>
                       Generate report
                     </NeonButton>
-                    <NeonButton className="bg-white/10" onClick={() => router.push("/reports")}>
+                    <NeonButton className="bg-white/10" onClick={() => router.push(getBrowserTournamentPath("/reports"))}>
                       Open reports
                     </NeonButton>
-                    <NeonButton className="bg-white/10" onClick={() => router.push("/data-manager")}>
+                    <NeonButton className="bg-white/10" onClick={() => router.push(getBrowserTournamentPath("/data-manager"))}>
                       Back to matches
                     </NeonButton>
                   </div>
@@ -375,7 +376,7 @@ export default function MatchDetailPage() {
                     title="No player stats"
                     description="This match does not have player-level stats yet."
                     actionLabel="Edit match"
-                    onAction={() => router.push("/add-match")}
+                    onAction={() => router.push(getBrowserTournamentPath("/add-match"))}
                   />
                 ) : (
                   stats

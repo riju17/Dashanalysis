@@ -10,6 +10,7 @@ import { Loader } from "@/components/ui/Loader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { MatchImportRecord, ParsedBattingRow, ParsedBowlingRow, ParsedFowRow, ParsedInnings, ParsedMatchImport, Player, Team, Venue } from "@/types/cricket";
 import type { ComponentType, ReactNode } from "react";
 
@@ -363,7 +364,7 @@ export function AutoMatchImportForm({ teams, venues, players }: Props) {
         throw new Error("The backend did not return a saved match.");
       }
       setStatusMessage("Match saved successfully. Redirecting to match detail...");
-      router.push(`/matches/${response.match.id}`);
+      router.push(getBrowserTournamentPath(`/matches/${response.match.id}`));
       router.refresh();
       return response;
     } catch (saveError) {

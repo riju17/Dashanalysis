@@ -117,8 +117,7 @@ class InsightsService:
         )[:3]
         return danger_players, top_batsmen, top_bowlers
 
-    def generate_match_report(self, match_id: str) -> dict[str, Any]:
-        context = self.analytics.store.snapshot(["teams", "venues", "matches", "players", "player_match_stats"])
+    def generate_match_report_with_context(self, match_id: str, context: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
         match = next((row for row in context.get("matches", []) if str(row.get("id")) == str(match_id)), None)
         if not match:
             return {}
@@ -148,6 +147,10 @@ class InsightsService:
             "player_impact": self.analytics.player_summary(str(player_of_match["id"]), context=context) if player_of_match else {},
             "strategy_notes": self.generate_opponent_strategy(str(match["team_a_id"]), str(match["team_b_id"]), str(match["venue_id"]), context=context),
         }
+
+    def generate_match_report(self, match_id: str, context: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+        scoped_context = context or self.analytics.store.snapshot(["teams", "venues", "matches", "players", "player_match_stats"])
+        return self.generate_match_report_with_context(match_id, scoped_context)
 
 
 insights_service = InsightsService()

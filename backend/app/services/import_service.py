@@ -40,7 +40,7 @@ def _normalized_player_key(team_id: str, player_name: str) -> tuple[str, str]:
 
 
 class ImportService:
-    async def import_from_screenshots(self, files: list[UploadFile]) -> dict[str, Any]:
+    async def import_from_screenshots(self, files: list[UploadFile], tournament_id: str | None = None) -> dict[str, Any]:
         if not files:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one screenshot is required.")
         text_chunks: list[str] = []
@@ -53,31 +53,45 @@ class ImportService:
             warnings.extend(result.warnings)
             confidence_scores.append(result.confidence)
         raw_text = "\n\n".join(text_chunks).strip()
-        return self._create_import_session("screenshot", raw_text, warnings, confidence_scores)
+        return self._create_import_session("screenshot", raw_text, warnings, confidence_scores, tournament_id=tournament_id)
 
-    async def import_from_pdf(self, file: UploadFile) -> dict[str, Any]:
+    async def import_from_pdf(self, file: UploadFile, tournament_id: str | None = None) -> dict[str, Any]:
         content = await file.read()
         result = ocr_service.extract_text_from_pdf_bytes(content, filename=file.filename)
         raw_text = result.text.strip()
         warnings = list(result.warnings)
-        return self._create_import_session("pdf", raw_text, warnings, [result.confidence])
+        return self._create_import_session("pdf", raw_text, warnings, [result.confidence], tournament_id=tournament_id)
 
-    def import_from_url(self, url: str) -> dict[str, Any]:
+    def import_from_url(self, url: str, tournament_id: str | None = None) -> dict[str, Any]:
         scrape_result = scorecard_scraper.scrape(url)
-        return self._create_import_session("url", scrape_result.raw_text, scrape_result.warnings, [0.9 if scrape_result.raw_text else 0.0])
+        return self._create_import_session(
+            "url",
+            scrape_result.raw_text,
+            scrape_result.warnings,
+            [0.9 if scrape_result.raw_text else 0.0],
+            tournament_id=tournament_id,
+        )
 
-    def get_import(self, import_id: str):
+    def get_import(self, import_id: str, tournament_id: str | None = None):
         record = store.get("match_imports", import_id)
-        if not record:
+        if not record or (tournament_id and str(record.get("tournament_id")) != str(tournament_id)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Import session not found")
         return record
 
-    def get_import_for_match(self, match_id: str):
+    def get_import_for_match(self, match_id: str, tournament_id: str | None = None):
         match = store.get("matches", match_id)
-        if not match:
+        if not match or (tournament_id and str(match.get("tournament_id")) != str(tournament_id)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
 
-        exact_match = next((record for record in store.list("match_imports") if str(record.get("match_id")) == str(match_id)), None)
+        exact_match = next(
+            (
+                record
+                for record in store.list("match_imports")
+                if str(record.get("match_id")) == str(match_id)
+                and (not tournament_id or str(record.get("tournament_id")) == str(tournament_id))
+            ),
+            None,
+        )
         if exact_match:
             return exact_match
 
@@ -87,7 +101,8 @@ class ImportService:
                 (
                     record
                     for record in store.list("match_imports")
-                    if int((record.get("parsed_json") or {}).get("match_details", {}).get("match_number", 0) or 0) == match_number
+                    if (not tournament_id or str(record.get("tournament_id")) == str(tournament_id))
+                    and int((record.get("parsed_json") or {}).get("match_details", {}).get("match_number", 0) or 0) == match_number
                 ),
                 None,
             )
@@ -96,10 +111,11 @@ class ImportService:
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Import session not found for match")
 
-    def confirm_import(self, import_id: str, parsed_json: dict[str, Any]) -> dict[str, Any]:
-        record = self.get_import(import_id)
-        teams = store.list("teams")
-        players = store.list("players")
+    def confirm_import(self, import_id: str, parsed_json: dict[str, Any], tournament_id: str | None = None) -> dict[str, Any]:
+        record = self.get_import(import_id, tournament_id=tournament_id)
+        teams = self._scoped_rows("teams", tournament_id)
+        players = self._scoped_rows("players", tournament_id)
+        tournament = store.get("tournaments", tournament_id) if tournament_id else None
 
         parsed_json = self._normalize_parsed_json(parsed_json)
         warnings = import_validation_service.validate(parsed_json, teams, players)
@@ -113,29 +129,31 @@ class ImportService:
         first_innings = innings[0]
         second_innings = innings[1] if len(innings) > 1 else {}
 
-        team_a = self._create_or_find_team(first_innings.get("team_name", "Team A"))
+        team_a = self._create_or_find_team(first_innings.get("team_name", "Team A"), tournament_id=tournament_id)
         team_b_name = second_innings.get("team_name") or self._infer_opponent_team_name(team_a["id"], teams)
-        team_b = self._create_or_find_team(team_b_name or "Team B")
+        team_b = self._create_or_find_team(team_b_name or "Team B", tournament_id=tournament_id)
 
-        venue = self._create_or_find_venue(match_details.get("venue", ""), match_details.get("city", ""))
-        match_number = match_details.get("match_number") or self._next_match_number()
+        venue = self._create_or_find_venue(match_details.get("venue", ""), match_details.get("city", ""), tournament_id=tournament_id)
+        match_number = match_details.get("match_number") or self._next_match_number(tournament_id=tournament_id)
         winner_name = parsed_json.get("result", {}).get("winner") or ""
         loser_name = parsed_json.get("result", {}).get("loser") or ""
-        winner_team = self._create_or_find_team(winner_name) if winner_name else None
-        loser_team = self._create_or_find_team(loser_name) if loser_name else None
+        winner_team = self._create_or_find_team(winner_name, tournament_id=tournament_id) if winner_name else None
+        loser_team = self._create_or_find_team(loser_name, tournament_id=tournament_id) if loser_name else None
 
-        toss_winner = self._create_or_find_team(match_details.get("toss_winner", "")) if match_details.get("toss_winner") else None
+        toss_winner = self._create_or_find_team(match_details.get("toss_winner", ""), tournament_id=tournament_id) if match_details.get("toss_winner") else None
         player_of_match = self._create_or_find_player(
             match_details.get("player_of_match", ""),
             winner_team["id"] if winner_team else team_a["id"],
+            tournament_id=tournament_id,
         ) if match_details.get("player_of_match") else None
 
         result_payload = self._result_payload(first_innings, second_innings, parsed_json.get("result", {}), team_a["id"], team_b["id"])
         match_payload = {
             "match_date": self._parse_date(match_details.get("match_date")),
-            "season": "2026",
-            "tournament": "MPt20",
+            "season": str(tournament.get("season") or "2026") if tournament else "2026",
+            "tournament": str(tournament.get("name") or "MPt20") if tournament else "MPt20",
             "match_number": match_number,
+            "tournament_id": tournament_id,
             "team_a_id": team_a["id"],
             "team_b_id": team_b["id"],
             "venue_id": venue["id"],
@@ -162,7 +180,7 @@ class ImportService:
             match_payload["notes"] = f"{match_payload['notes']} | Match time: {match_details['match_time']}" if match_payload["notes"] else f"Match time: {match_details['match_time']}"
 
         match = store.insert("matches", match_payload)
-        stats_rows = self._build_player_stats(match["id"], parsed_json, team_a, team_b)
+        stats_rows = self._build_player_stats(match["id"], parsed_json, team_a, team_b, tournament_id=tournament_id)
         if stats_rows:
             store.append_player_stats(match["id"], stats_rows)
 
@@ -171,6 +189,7 @@ class ImportService:
             record["id"],
             {
                 "match_id": match["id"],
+                "tournament_id": tournament_id,
                 "import_type": record.get("import_type"),
                 "raw_text": record.get("raw_text", ""),
                 "parsed_json": parsed_json,
@@ -179,7 +198,10 @@ class ImportService:
             },
         )
 
-        report = report_service.generate_match_report(match["id"])
+        report = report_service.generate_match_report(
+            match["id"],
+            context=self._context(tournament_id),
+        )
         return {
             "import_record": import_update or record,
             "match": match,
@@ -187,9 +209,9 @@ class ImportService:
             "warnings": parsed_json.get("parser_warnings", []),
         }
 
-    def backfill_dismissals(self, match_id: str | None = None) -> dict[str, Any]:
-        imports = store.list("match_imports")
-        matches = store.list("matches")
+    def backfill_dismissals(self, match_id: str | None = None, tournament_id: str | None = None) -> dict[str, Any]:
+        imports = self._scoped_rows("match_imports", tournament_id)
+        matches = self._scoped_rows("matches", tournament_id)
         target_match_number = None
         if match_id:
             target_match = store.get("matches", match_id)
@@ -204,11 +226,11 @@ class ImportService:
 
         player_names = {
             str(player["id"]): player.get("player_name", "")
-            for player in store.list("players")
+            for player in self._scoped_rows("players", tournament_id)
         }
         team_names = {
             str(team["id"]): team.get("team_name", "")
-            for team in store.list("teams")
+            for team in self._scoped_rows("teams", tournament_id)
         }
 
         processed_imports = 0
@@ -249,7 +271,11 @@ class ImportService:
                 continue
 
             matched_imports += 1
-            for stat_row in store.filter("player_match_stats", match_id=str(matched_match["id"])):
+            for stat_row in [
+                row
+                for row in self._scoped_rows("player_match_stats", tournament_id)
+                if str(row.get("match_id")) == str(matched_match["id"])
+            ]:
                 if (stat_row.get("dismissal") or "").strip():
                     continue
                 player_name = player_names.get(str(stat_row.get("player_id")), "")
@@ -266,17 +292,24 @@ class ImportService:
             "updated_rows": updated_rows,
         }
 
-    def _create_import_session(self, import_type: str, raw_text: str, warnings: list[str], confidence_scores: list[float]) -> dict[str, Any]:
+    def _create_import_session(
+        self,
+        import_type: str,
+        raw_text: str,
+        warnings: list[str],
+        confidence_scores: list[float],
+        tournament_id: str | None = None,
+    ) -> dict[str, Any]:
         parsed_json = parse_scorecard_text(raw_text or "")
         parsed_json = self._normalize_parsed_json(parsed_json)
 
-        teams = store.list("teams")
-        players = store.list("players")
+        teams = self._scoped_rows("teams", tournament_id)
+        players = self._scoped_rows("players", tournament_id)
         validation_warnings = import_validation_service.validate(parsed_json, teams, players)
         parsed_json = import_validation_service.merge_warnings(parsed_json, warnings + validation_warnings)
 
         if not parsed_json["match_details"].get("match_number"):
-            parsed_json["match_details"]["match_number"] = self._next_match_number()
+            parsed_json["match_details"]["match_number"] = self._next_match_number(tournament_id=tournament_id)
 
         confidence_values = [score for score in confidence_scores if isinstance(score, (int, float))]
         if confidence_values:
@@ -285,6 +318,7 @@ class ImportService:
         record = store.insert(
             "match_imports",
             {
+                "tournament_id": tournament_id,
                 "import_type": import_type,
                 "raw_text": raw_text,
                 "parsed_json": parsed_json,
@@ -339,7 +373,14 @@ class ImportService:
             "confidence_score": float(parsed_json.get("confidence_score", 0.0) or 0.0),
         }
 
-    def _build_player_stats(self, match_id: str, parsed_json: dict[str, Any], team_a: dict[str, Any], team_b: dict[str, Any]) -> list[dict[str, Any]]:
+    def _build_player_stats(
+        self,
+        match_id: str,
+        parsed_json: dict[str, Any],
+        team_a: dict[str, Any],
+        team_b: dict[str, Any],
+        tournament_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         innings = parsed_json.get("innings", [])
         if not innings:
             return []
@@ -358,12 +399,17 @@ class ImportService:
             bowling_team = team_lookup[bowling_team_id]
 
             for batting_index, batting_row in enumerate(innings_row.get("batting", []), start=1):
-                player = self._create_or_find_player(batting_row.get("player_name", ""), batting_team_id)
+                player = self._create_or_find_player(
+                    batting_row.get("player_name", ""),
+                    batting_team_id,
+                    tournament_id=tournament_id,
+                )
                 key = (batting_team_id, _normalize_name(batting_row.get("player_name", "")))
                 row = combined_rows.setdefault(
                     key,
                     {
                         "match_id": match_id,
+                        "tournament_id": tournament_id,
                         "player_id": player["id"],
                         "team_id": batting_team_id,
                         "batting_position": batting_index,
@@ -397,12 +443,17 @@ class ImportService:
                 )
 
             for bowling_row in innings_row.get("bowling", []):
-                player = self._create_or_find_player(bowling_row.get("player_name", ""), bowling_team_id)
+                player = self._create_or_find_player(
+                    bowling_row.get("player_name", ""),
+                    bowling_team_id,
+                    tournament_id=tournament_id,
+                )
                 key = (bowling_team_id, _normalize_name(bowling_row.get("player_name", "")))
                 row = combined_rows.setdefault(
                     key,
                     {
                         "match_id": match_id,
+                        "tournament_id": tournament_id,
                         "player_id": player["id"],
                         "team_id": bowling_team_id,
                         "batting_position": None,
@@ -459,16 +510,24 @@ class ImportService:
                 lookup[key] = dismissal
         return lookup
 
-    def _create_or_find_team(self, team_name: str) -> dict[str, Any]:
+    def _create_or_find_team(self, team_name: str, tournament_id: str | None = None) -> dict[str, Any]:
         normalized = _normalize_name(team_name)
-        existing = next((team for team in store.list("teams") if _normalize_name(team.get("team_name", "")) == normalized), None)
+        existing = next(
+            (
+                team
+                for team in self._scoped_rows("teams", tournament_id)
+                if _normalize_name(team.get("team_name", "")) == normalized
+            ),
+            None,
+        )
         if existing:
             return existing
-        index = len(store.list("teams")) % len(TEAM_THEME_FALLBACKS)
+        index = len(self._scoped_rows("teams", tournament_id)) % len(TEAM_THEME_FALLBACKS)
         primary, secondary, accent = TEAM_THEME_FALLBACKS[index]
         return store.insert(
             "teams",
             {
+                "tournament_id": tournament_id,
                 "team_name": team_name,
                 "short_name": "".join(part[0] for part in team_name.split()[:3]).upper(),
                 "primary_color": primary,
@@ -478,26 +537,34 @@ class ImportService:
             },
         )
 
-    def _create_or_find_venue(self, venue_name: str, city: str = "") -> dict[str, Any]:
+    def _create_or_find_venue(self, venue_name: str, city: str = "", tournament_id: str | None = None) -> dict[str, Any]:
         normalized = _normalize_name(venue_name)
-        existing = next((venue for venue in store.list("venues") if _normalize_name(venue.get("venue_name", "")) == normalized), None)
+        existing = next(
+            (
+                venue
+                for venue in self._scoped_rows("venues", tournament_id)
+                if _normalize_name(venue.get("venue_name", "")) == normalized
+            ),
+            None,
+        )
         if existing:
             return existing
         return store.insert(
             "venues",
             {
+                "tournament_id": tournament_id,
                 "venue_name": venue_name or "Unknown Venue",
                 "city": city or None,
                 "country": "India" if city else None,
             },
         )
 
-    def _create_or_find_player(self, player_name: str, team_id: str) -> dict[str, Any]:
+    def _create_or_find_player(self, player_name: str, team_id: str, tournament_id: str | None = None) -> dict[str, Any]:
         normalized = _normalize_name(player_name)
         existing = next(
             (
                 player
-                for player in store.list("players")
+                for player in self._scoped_rows("players", tournament_id)
                 if _normalize_name(player.get("player_name", "")) == normalized and str(player.get("team_id")) == str(team_id)
             ),
             None,
@@ -506,12 +573,17 @@ class ImportService:
             return existing
 
         role = "All-rounder"
-        team_players = store.filter("players", team_id=team_id)
+        team_players = [
+            player
+            for player in self._scoped_rows("players", tournament_id)
+            if str(player.get("team_id")) == str(team_id)
+        ]
         if not team_players:
             role = "Batter"
         return store.insert(
             "players",
             {
+                "tournament_id": tournament_id,
                 "player_name": player_name,
                 "team_id": team_id,
                 "role": role,
@@ -574,12 +646,32 @@ class ImportService:
                 continue
         return value
 
-    def _next_match_number(self) -> int:
-        matches = store.list("matches")
+    def _next_match_number(self, tournament_id: str | None = None) -> int:
+        matches = self._scoped_rows("matches", tournament_id)
         if not matches:
             return 1
         numbers = [int(match.get("match_number", 0) or 0) for match in matches]
         return max(numbers) + 1 if numbers else 1
+
+    def _scoped_rows(self, table: str, tournament_id: str | None) -> list[dict[str, Any]]:
+        rows = store.list(table)
+        if not tournament_id:
+            return rows
+        return [row for row in rows if str(row.get("tournament_id")) == str(tournament_id)]
+
+    def _context(self, tournament_id: str | None) -> dict[str, list[dict[str, Any]]] | None:
+        if not tournament_id:
+            return None
+        return {
+            "teams": self._scoped_rows("teams", tournament_id),
+            "players": self._scoped_rows("players", tournament_id),
+            "venues": self._scoped_rows("venues", tournament_id),
+            "matches": self._scoped_rows("matches", tournament_id),
+            "player_match_stats": self._scoped_rows("player_match_stats", tournament_id),
+            "reports": self._scoped_rows("reports", tournament_id),
+            "match_imports": self._scoped_rows("match_imports", tournament_id),
+            "tournaments": [row for row in store.list("tournaments") if str(row.get("id")) == str(tournament_id)],
+        }
 
 
 import_service = ImportService()

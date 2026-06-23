@@ -8,6 +8,7 @@ import { Loader } from "@/components/ui/Loader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { VenueTrendChart } from "@/components/charts/VenueTrendChart";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { Venue, VenueAnalytics } from "@/types/cricket";
 
 export default function VenuesPage() {
@@ -111,7 +112,7 @@ export default function VenuesPage() {
         </div>
       )}
       {!loading && !error && (!venueAnalytics || venues.length === 0) && (
-        <EmptyState title="No venue data" description="Venue analytics will appear after you seed venues and completed matches." actionLabel="Go to admin" onAction={() => window.location.assign("/admin")} />
+        <EmptyState title="No venue data" description="Venue analytics will appear after you seed venues and completed matches." actionLabel="Go to admin" onAction={() => window.location.assign(getBrowserTournamentPath("/admin"))} />
       )}
     </AppShell>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,9 +12,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { TeamCard } from "@/components/cards/TeamCard";
 import { TeamComparisonChart } from "@/components/charts/TeamComparisonChart";
 import { getTeamTheme, teamThemeNames } from "@/config/teamThemes";
+import { getBrowserTournamentPath, withTournamentPath } from "@/lib/tournament";
 import type { Team, TeamAnalytics } from "@/types/cricket";
 
 export default function TeamsPage() {
+  const pathname = usePathname();
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [teamAnalytics, setTeamAnalytics] = useState<TeamAnalytics | null>(null);
@@ -104,7 +107,7 @@ export default function TeamsPage() {
                   return (
                     <Link
                       key={match.id}
-                      href={`/matches/${match.id}`}
+                      href={withTournamentPath(pathname, `/matches/${match.id}`)}
                       className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-cyan-300/40 hover:bg-white/10"
                     >
                       <span
@@ -144,7 +147,7 @@ export default function TeamsPage() {
         </div>
       )}
       {!loading && !error && (!teamAnalytics || teams.length === 0) && (
-        <EmptyState title="No team data" description="Add teams and completed matches to unlock team analysis." actionLabel="Go to admin" onAction={() => window.location.assign("/admin")} />
+        <EmptyState title="No team data" description="Add teams and completed matches to unlock team analysis." actionLabel="Go to admin" onAction={() => window.location.assign(getBrowserTournamentPath("/admin"))} />
       )}
     </AppShell>
   );

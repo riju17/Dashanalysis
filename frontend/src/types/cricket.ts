@@ -1,5 +1,6 @@
 export type Team = {
   id: string;
+  tournament_id?: string;
   team_name: string;
   short_name?: string | null;
   primary_color?: string | null;
@@ -11,6 +12,7 @@ export type Team = {
 
 export type Venue = {
   id: string;
+  tournament_id?: string;
   venue_name: string;
   city?: string | null;
   country?: string | null;
@@ -19,6 +21,7 @@ export type Venue = {
 
 export type Player = {
   id: string;
+  tournament_id?: string;
   player_name: string;
   team_id: string;
   role?: string | null;
@@ -29,6 +32,7 @@ export type Player = {
 
 export type MatchRecord = {
   id: string;
+  tournament_id?: string;
   match_date: string;
   season: string;
   tournament: string;
@@ -58,6 +62,7 @@ export type MatchRecord = {
 
 export type MatchPlayerStatRecord = {
   id: string;
+  tournament_id?: string;
   match_id: string;
   player_id: string;
   team_id: string;
@@ -168,6 +173,68 @@ export type StandingRow = {
   wins: number;
   losses: number;
   points: number;
+};
+
+export type TournamentRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  season: string;
+  description?: string | null;
+  logo_url?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at?: string;
+};
+
+export type TournamentAccessRecord = {
+  id: string;
+  user_id: string;
+  tournament_id: string;
+  role: "owner" | "admin" | "analyst" | "viewer";
+  access_expires_at?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  email?: string | null;
+};
+
+export type AccessKeyRecord = {
+  id: string;
+  tournament_id: string;
+  role: "owner" | "admin" | "analyst" | "viewer";
+  expires_at: string;
+  access_duration_days?: number | null;
+  max_uses: number;
+  used_count: number;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at?: string;
+};
+
+export type AccessKeyCreatePayload = {
+  tournament_id: string;
+  role: "owner" | "admin" | "analyst" | "viewer";
+  expires_at: string;
+  access_duration_days?: number | null;
+  max_uses: number;
+};
+
+export type AccessKeyCreateResult = {
+  key: string;
+  record: AccessKeyRecord;
+};
+
+export type AccessKeyRedemptionResult = {
+  tournament: TournamentRecord;
+  access: TournamentAccessRecord;
+};
+
+export type UserAccessSummary = {
+  user_id: string;
+  email?: string | null;
+  tournaments: TournamentAccessRecord[];
 };
 
 export type PredictionInput = {

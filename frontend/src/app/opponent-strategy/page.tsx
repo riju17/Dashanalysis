@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -10,6 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TeamComparisonChart } from "@/components/charts/TeamComparisonChart";
 import { getTeamTheme } from "@/config/teamThemes";
+import { getBrowserTournamentPath, withTournamentPath } from "@/lib/tournament";
 import type { Team, Venue, TeamAnalytics } from "@/types/cricket";
 
 type StrategyData = {
@@ -37,6 +39,7 @@ type StrategyData = {
 };
 
 export default function OpponentStrategyPage() {
+  const pathname = usePathname();
   const [teams, setTeams] = useState<Team[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [ourTeamId, setOurTeamId] = useState("");
@@ -157,7 +160,7 @@ export default function OpponentStrategyPage() {
                   {data.top_batsmen.map((player) => (
                     <Link
                       key={player.player_id}
-                      href={`/players?playerId=${player.player_id}`}
+                      href={withTournamentPath(pathname, `/players?playerId=${player.player_id}`)}
                       className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-white/10"
                     >
                       <p className="text-sm font-semibold text-white">{player.player_name}</p>
@@ -174,7 +177,7 @@ export default function OpponentStrategyPage() {
                   {data.top_bowlers.map((player) => (
                     <Link
                       key={player.player_id}
-                      href={`/players?playerId=${player.player_id}`}
+                      href={withTournamentPath(pathname, `/players?playerId=${player.player_id}`)}
                       className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-white/10"
                     >
                       <p className="text-sm font-semibold text-white">{player.player_name}</p>
@@ -200,7 +203,7 @@ export default function OpponentStrategyPage() {
         </div>
       )}
       {!loading && !error && (!data || !ourTeam || !opponentTeam) && (
-        <EmptyState title="No matchup data" description="Opponent strategy requires at least two teams and completed match history." actionLabel="Open dashboard" onAction={() => window.location.assign("/dashboard")} />
+        <EmptyState title="No matchup data" description="Opponent strategy requires at least two teams and completed match history." actionLabel="Open dashboard" onAction={() => window.location.assign(getBrowserTournamentPath("/dashboard"))} />
       )}
     </AppShell>
   );

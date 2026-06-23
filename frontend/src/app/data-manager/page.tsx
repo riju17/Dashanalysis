@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { getTeamTheme } from "@/config/teamThemes";
+import { getBrowserTournamentPath } from "@/lib/tournament";
 import type { MatchRecord } from "@/types/cricket";
 
 export default function DataManagerPage() {
@@ -98,7 +99,7 @@ export default function DataManagerPage() {
 
           <div className="space-y-3">
             {filtered.length === 0 && (
-              <EmptyState title="No matches found" description="Clear the filter or add completed matches to populate the data manager." actionLabel="Add match" onAction={() => window.location.assign("/add-match")} />
+              <EmptyState title="No matches found" description="Clear the filter or add completed matches to populate the data manager." actionLabel="Add match" onAction={() => window.location.assign(getBrowserTournamentPath("/add-match"))} />
             )}
             {filtered.map((match) => (
               <ThemedMatchCard
@@ -186,10 +187,10 @@ function ThemedMatchCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <NeonButton className="bg-white/10 transition-transform duration-300 group-hover:translate-y-[-1px]" onClick={() => window.location.assign(`/matches/${match.id}`)}>
+          <NeonButton className="bg-white/10 transition-transform duration-300 group-hover:translate-y-[-1px]" onClick={() => window.location.assign(getBrowserTournamentPath(`/matches/${match.id}`))}>
             View match
           </NeonButton>
-          <NeonButton className="transition-transform duration-300 group-hover:translate-y-[-1px]" onClick={() => window.location.assign(`/reports?match=${match.id}`)}>
+          <NeonButton className="transition-transform duration-300 group-hover:translate-y-[-1px]" onClick={() => window.location.assign(getBrowserTournamentPath(`/reports?match=${match.id}`))}>
             Generate report
           </NeonButton>
           <button
