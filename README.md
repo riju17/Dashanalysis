@@ -254,3 +254,4 @@ Placeholders for these modules live in `backend/app/future/`.
 - This MVP is structured for extension, not just for demo screenshots.
 # Dashanalysis
 # sample-
+# statanalysis
